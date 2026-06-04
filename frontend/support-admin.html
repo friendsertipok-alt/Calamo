@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель управления | Поддержка</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent: #2563eb;
+            --border: #e2e8f0;
+            --status-new-bg: #dcfce7;
+            --status-new-text: #166534;
+            --status-working-bg: #fef9c3;
+            --status-working-text: #854d0e;
+            --status-closed-bg: #f1f5f9;
+            --status-closed-text: #475569;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            flex: 1;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat-card div:first-child {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .stat-card div:last-child {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .table-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f8fafc;
+            padding: 16px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-new { background: var(--status-new-bg); color: var(--status-new-text); }
+        .status-working { background: var(--status-working-bg); color: var(--status-working-text); }
+        .status-closed { background: var(--status-closed-bg); color: var(--status-closed-text); }
+
+        .btn-status {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .btn-status:hover { background: #f8fafc; }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Login Layer -->
+<div id="login-layer" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); display: flex; align-items: center; justify-content: center; z-index: 10000;">
+    <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 350px; border: 1px solid var(--border);">
+        <h2 style="text-align: center; margin-bottom: 25px; font-weight: 600;">Вход в панель</h2>
+        <input type="text" id="admin-login" placeholder="Логин" style="width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box;">
+        <input type="password" id="admin-password" placeholder="Пароль" style="width: 100%; padding: 12px; margin-bottom: 25px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box;">
+        <button onclick="checkAdminLogin()" style="width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Войти</button>
+        <p id="login-error" style="color: #ef4444; font-size: 13px; text-align: center; margin-top: 15px; display: none;">Неверный логин или пароль</p>
+    </div>
+</div>
+
+<div class="container" id="admin-content" style="display: none;">
+    <header>
+        <h1>Панель техподдержки</h1>
+        <button class="btn-status" onclick="loadTickets()">🔄 Обновить</button>
+    </header>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div>Всего заявок</div>
+            <div id="count-total">0</div>
+        </div>
+        <div class="stat-card">
+            <div>Новые</div>
+            <div id="count-new" style="color: var(--status-new-text)">0</div>
+        </div>
+        <div class="stat-card">
+            <div>В работе</div>
+            <div id="count-working" style="color: var(--status-working-text)">0</div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="tickets-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Email клиента</th>
+                    <th>Обращение</th>
+                    <th>Дата</th>
+                    <th>Статус</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody id="tickets-body">
+                <tr>
+                    <td colspan="6" class="loading">Загрузка заявок...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function checkAdminLogin() {
+        const login = document.getElementById('admin-login').value;
+        const pass = document.getElementById('admin-password').value;
+        
+        // Простая проверка (замени на свои данные)
+        if (login === 'admin' && pass === 'calamo2026') {
+            document.getElementById('login-layer').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            loadTickets();
+        } else {
+            document.getElementById('login-error').style.display = 'block';
+        }
+    }
+    async function loadTickets() {
+        try {
+            const response = await fetch('/api/support/tickets');
+            const tickets = await response.json();
+            renderTickets(tickets);
+        } catch (error) {
+            console.error('Failed to load tickets', error);
+        }
+    }
+
+    function renderTickets(tickets) {
+        const body = document.getElementById('tickets-body');
+        body.innerHTML = '';
+
+        let counts = { 'Новая': 0, 'В работе': 0, 'Закрыта': 0 };
+
+        tickets.forEach(t => {
+            counts[t.status] = (counts[t.status] || 0) + 1;
+            
+            const date = new Date(t.created_at).toLocaleString('ru-RU', {
+                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+
+            const statusClass = t.status === 'Новая' ? 'status-new' : 
+                               t.status === 'В работе' ? 'status-working' : 'status-closed';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td style="color: var(--text-muted)">#${t.id}</td>
+                <td style="font-weight: 500">${t.user_email}</td>
+                <td style="max-width: 300px; white-space: pre-wrap;">${t.message}</td>
+                <td style="color: var(--text-muted); font-size: 13px;">${date}</td>
+                <td><span class="status-badge ${statusClass}">${t.status}</span></td>
+                <td>
+                    <select class="btn-status" onchange="updateStatus(${t.id}, this.value)">
+                        <option value="" disabled selected>Изменить</option>
+                        <option value="Новая">Новая</option>
+                        <option value="В работе">В работе</option>
+                        <option value="Закрыта">Закрыта</option>
+                    </select>
+                </td>
+            `;
+            body.appendChild(row);
+        });
+
+        document.getElementById('count-total').innerText = tickets.length;
+        document.getElementById('count-new').innerText = counts['Новая'];
+        document.getElementById('count-working').innerText = counts['В работе'];
+    }
+
+    async function updateStatus(id, newStatus) {
+        try {
+            const response = await fetch(`/api/support/tickets/${id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (response.ok) {
+                loadTickets();
+            }
+        } catch (error) {
+            alert('Ошибка при обновлении статуса');
+        }
+    }
+
+    // Загрузка только после успешного входа
+    // loadTickets(); 
+</script>
+
+</body>
+</html>

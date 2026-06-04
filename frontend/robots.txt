@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /docs/*.pdf
+
+Sitemap: https://calamo.lol/sitemap.xml

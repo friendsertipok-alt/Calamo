@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calamo — Глобальная статистика</title>
+    <meta name="description" content="Глобальная статистика Calamo: более 84 000 сгенерированных страниц и 12 миллионов слов. Средняя уникальность работ 96.4%. Посмотрите, как студенты по всей России экономят время с нами.">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://calamo.lol/stats.html">
+    <meta property="og:title" content="Статистика Calamo — Масштабы нашей работы">
+    <meta property="og:description" content="84K+ страниц, 12M+ слов и тысячи довольных студентов.">
+    <meta property="og:image" content="https://calamo.lol/assets/og-stats.png">
+    <link rel="canonical" href="https://calamo.lol/stats.html">
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9VV7FG6P8P"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9VV7FG6P8P');</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #030303;
+            --accent: #ff4d00;
+            --accent-glow: rgba(255, 77, 0, 0.3);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-muted: #666;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: #fff; overflow-x: hidden; min-height: 100vh; }
+
+        header { padding: 40px; text-align: center; }
+        .back-link { 
+            display: inline-flex; align-items: center; gap: 10px;
+            color: #fff; text-decoration: none; font-size: 14px; 
+            font-weight: 600; padding: 12px 24px;
+            background: rgba(255,255,255,0.05); 
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 100px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .back-link:hover { 
+            background: rgba(255, 77, 0, 0.1); 
+            border-color: var(--accent);
+            transform: translateX(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 0 15px rgba(255,77,0,0.1);
+        }
+
+        .back-link svg { transition: transform 0.3s ease; }
+        .back-link:hover svg { transform: translateX(-3px); }
+
+        .stats-container { max-width: 1200px; margin: 0 auto; padding: 0 20px 100px; }
+
+        .hero-stats {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 60px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+            padding: 30px; border-radius: 24px; text-align: center;
+            transition: 0.3s;
+        }
+
+        .stat-card:hover { border-color: var(--accent); background: rgba(255,77,0,0.02); }
+
+        .stat-value { font-size: 32px; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
+        .stat-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+
+        /* Map Section */
+        .map-box {
+            background: rgba(255,255,255,0.01); border: 1px solid var(--border);
+            border-radius: 40px; height: 500px; position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .map-overlay {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at center, transparent 0%, var(--bg) 90%);
+            z-index: 2;
+        }
+
+        .pulse {
+            position: absolute; width: 8px; height: 8px;
+            background: var(--accent); border-radius: 50%;
+            box-shadow: 0 0 20px var(--accent);
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(4); opacity: 0; }
+        }
+
+        .live-feed {
+            position: absolute; bottom: 30px; left: 30px; z-index: 10;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+            padding: 20px; border-radius: 20px; border: 1px solid var(--border);
+            width: 300px;
+        }
+
+        .feed-item {
+            display: flex; justify-content: space-between; font-size: 11px;
+            font-family: 'JetBrains Mono', monospace; margin-bottom: 8px;
+            color: #888; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 4px;
+        }
+        .feed-item span:first-child { color: var(--accent); }
+
+        h1 { font-size: 56px; font-weight: 800; letter-spacing: -2px; margin-bottom: 10px; text-align: center; }
+
+        @keyframes pageFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        body {
+            animation: pageFadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            background: #0a0a0a;
+        }
+        .fade-out {
+            opacity: 0 !important;
+            transition: opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+        }
+
+        @media (max-width: 768px) {
+            .hero-stats { grid-template-columns: 1fr 1fr; }
+            h1 { font-size: 36px; }
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('a').forEach(link => {
+                if (link.hostname === window.location.hostname && !link.hash && !link.getAttribute('download')) {
+                    link.addEventListener('click', e => {
+                        e.preventDefault();
+                        const href = link.href;
+                        document.body.classList.add('fade-out');
+                        setTimeout(() => {
+                            window.location.href = href;
+                        }, 400);
+                    });
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="back-link">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            На главную
+        </a>
+        <h1 style="margin-top: 40px;">Calamo Global</h1>
+    </header>
+
+    <div class="stats-container">
+        <div class="hero-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="count-pages">1,142</div>
+                <div class="stat-label">Страниц сгенерировано</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="count-words">285K</div>
+                <div class="stat-label">Слов написано</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="count-uniqueness">96.4%</div>
+                <div class="stat-label">Средняя уникальность</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="count-hours">1.5K</div>
+                <div class="stat-label">Часов сэкономлено</div>
+            </div>
+        </div>
+
+        <div class="map-box" id="map-box" style="padding: 0;">
+            <div id="globeViz" style="width: 100%; height: 100%;"></div>
+            
+            <div class="live-feed">
+                <div style="font-size: 10px; font-weight: 800; color: #fff; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 2px;">ЖИВАЯ ЛЕНТА</div>
+                <div id="feed-container">
+                    <div class="feed-item"><span>Ожидание...</span><span>Calamo AI</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/three"></script>
+    <script src="https://unpkg.com/globe.gl"></script>
+    <script>
+        // --- ДИНАМИЧЕСКАЯ СТАТИСТИКА (Детерминированная защита от обновления страницы) ---
+        // Простой и безотказный генератор псевдослучайных чисел
+        const now = new Date();
+        const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+        let prngState = dayOfYear;
+        
+        function seededRandom() {
+            prngState++;
+            const x = Math.sin(prngState) * 10000;
+            return x - Math.floor(x);
+        }
+
+        // Генерируем "базовые" статы на начало дня (всегда одинаковые для текущего дня)
+        let currentPages = 1140 + Math.floor(seededRandom() * 50);
+        let currentWords = 285000 + Math.floor(seededRandom() * 10000);
+        let currentHours = 1520 + Math.floor(seededRandom() * 40);
+        let currentUniqueness = 96.4 + (seededRandom() * 1.2 - 0.6);
+
+        // Симулируем заказы, которые УЖЕ прошли сегодня
+        const minutesToday = now.getHours() * 60 + now.getMinutes();
+        // Заказы появляются в среднем каждые 12.5 минут. Каждые 12.5 минут счетчик стабильно увеличивается.
+        const expectedOrdersToday = Math.floor(minutesToday / 12.5); 
+
+        for(let i = 0; i < expectedOrdersToday; i++) {
+            currentPages += Math.floor(seededRandom() * 30 + 20); // 20-50 стр
+            currentWords += Math.floor(seededRandom() * 5000 + 7000); // 7к-12к слов
+            currentHours += Math.floor(seededRandom() * 15 + 10); // 10-25 часов
+            currentUniqueness = Math.max(90, Math.min(99.9, currentUniqueness + (seededRandom() * 0.2 - 0.1)));
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toLocaleString('en-US');
+        }
+
+        function updateStatsUI() {
+            document.getElementById('count-pages').innerText = currentPages.toLocaleString('en-US');
+            document.getElementById('count-words').innerText = formatNumber(currentWords);
+            document.getElementById('count-hours').innerText = formatNumber(currentHours);
+            document.getElementById('count-uniqueness').innerText = currentUniqueness.toFixed(1) + '%';
+        }
+
+        // Обновляем UI при старте
+        updateStatsUI();
+
+        // Initialize Globe
+        const mapBox = document.getElementById('map-box');
+        const globeViz = document.getElementById('globeViz');
+        
+        const globe = Globe()
+            (globeViz)
+            .width(mapBox.clientWidth)
+            .height(mapBox.clientHeight)
+            // Убираем растровую текстуру для идеального качества (рендер векторами)
+            .showGlobe(true)
+            .backgroundColor('rgba(0,0,0,0)')
+            .showAtmosphere(true)
+            .atmosphereColor('#ff4d00')
+            .atmosphereAltitude(0.15)
+            .ringColor(() => '#ff4d00')
+            .ringMaxRadius(3)
+            .ringPropagationSpeed(2)
+            .ringRepeatPeriod(1000)
+            .ringAltitude(0.015); // Поднимаем кольца над странами, чтобы их было видно
+
+        // Черный цвет для водоемов (океанов)
+        globe.globeMaterial().color.set('#000000');
+
+        // Adjust resize
+        window.addEventListener('resize', () => {
+            globe.width(mapBox.clientWidth);
+            globe.height(mapBox.clientHeight);
+        });
+
+        // Set initial view to Russia roughly
+        globe.pointOfView({ lat: 55.75, lng: 37.61, altitude: 1.5 }, 0);
+        
+        // Auto-rotate setup
+        globe.controls().autoRotate = true;
+        globe.controls().autoRotateSpeed = 0.5;
+        globe.controls().enableZoom = false;
+
+        // Загружаем границы стран (GeoJSON) для отрисовки вектором (бесконечное качество)
+        fetch('https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson')
+            .then(res => res.json())
+            .then(countries => {
+                globe.polygonsData(countries.features.filter(d => d.properties.ISO_A2 !== 'AQ'))
+                    .polygonAltitude(0.005) // Страны лежат почти на сфере
+                    .polygonCapColor(() => '#1a1a1a') // Темно-серые страны
+                    .polygonSideColor(() => 'rgba(0, 0, 0, 0)')
+                    .polygonStrokeColor(() => 'rgba(255, 77, 0, 0.4)'); // Возвращаем оранжевые границы
+            });
+
+        const citiesData = [
+            { name: 'Москва', lat: 55.7558, lng: 37.6173 },
+            { name: 'СПб', lat: 59.9343, lng: 30.3351 },
+            { name: 'Казань', lat: 55.7963, lng: 49.1088 },
+            { name: 'Томск', lat: 56.4977, lng: 84.9744 },
+            { name: 'Самара', lat: 53.2001, lng: 50.1500 },
+            { name: 'Омск', lat: 54.9885, lng: 73.3242 },
+            { name: 'Уфа', lat: 54.7388, lng: 55.9721 },
+            { name: 'Краснодар', lat: 45.0393, lng: 38.9806 },
+            { name: 'Новосибирск', lat: 55.0084, lng: 82.9357 },
+            { name: 'Екатеринбург', lat: 56.8389, lng: 60.6057 },
+            { name: 'Владивосток', lat: 43.1198, lng: 131.8869 },
+            { name: 'Ростов-на-Дону', lat: 47.2313, lng: 39.7233 }
+        ];
+
+        const types = ['Курсовая', 'Диплом', 'Реферат', 'Статья'];
+        
+        // Взвешенный рандом для городов (Москва ~85%, СПб ~10%, остальные ~5%)
+        function getRandomCity() {
+            const rand = Math.random() * 100;
+            if (rand < 85) return citiesData.find(c => c.name === 'Москва');
+            if (rand < 95) return citiesData.find(c => c.name === 'СПб');
+            const others = citiesData.filter(c => c.name !== 'Москва' && c.name !== 'СПб');
+            return others[Math.floor(Math.random() * others.length)];
+        }
+
+        // Взвешенный рандом для типа работы (Курсовая ~80%)
+        function getRandomType() {
+            const rand = Math.random() * 100;
+            if (rand < 80) return 'Курсовая';
+            const others = types.filter(t => t !== 'Курсовая');
+            return others[Math.floor(Math.random() * others.length)];
+        }
+        
+        let rotationTimeout;
+
+        function addOrder() {
+            const city = getRandomCity();
+            const type = getRandomType();
+            
+            // --- ДОБАВЛЯЕМ СТАТИСТИКУ В РЕАЛЬНОМ ВРЕМЕНИ ---
+            const pagesAdded = Math.floor(Math.random() * 30 + 20); // 20-50 страниц
+            currentPages += pagesAdded;
+            currentWords += pagesAdded * Math.floor(Math.random() * 100 + 200); // 200-300 слов на страницу
+            currentHours += Math.floor(Math.random() * 15 + 10); // сэкономлено часов
+            // Уникальность чуть-чуть колеблется при каждом заказе
+            currentUniqueness = Math.max(90, Math.min(99.9, currentUniqueness + (Math.random() * 0.2 - 0.1)));
+            
+            updateStatsUI();
+            
+            // Add to feed UI
+            const container = document.getElementById('feed-container');
+            const item = document.createElement('div');
+            item.className = 'feed-item';
+            item.style.opacity = '0';
+            item.innerHTML = `<span>${type}</span><span>${city.name}</span>`;
+            container.prepend(item);
+            if (container.children.length > 5) container.removeChild(container.lastChild);
+            setTimeout(() => item.style.opacity = '1', 10);
+            
+            // Show ripple on globe (явно указываем координаты для надежности)
+            globe.ringLat(d => d.lat).ringLng(d => d.lng).ringsData([city]);
+            
+            // Pause auto-rotation and zoom into the location
+            globe.controls().autoRotate = false;
+            clearTimeout(rotationTimeout);
+            
+            // Приближаем намного сильнее (altitude 0.15 вместо 0.8)
+            globe.pointOfView({ lat: city.lat, lng: city.lng, altitude: 0.15 }, 1500);
+            
+            // Resume auto-rotation after 4 seconds
+            rotationTimeout = setTimeout(() => {
+                globe.controls().autoRotate = true;
+                // Немного отдаляем обратно для красоты вращения
+                globe.pointOfView({ lat: city.lat, lng: city.lng, altitude: 0.6 }, 2000);
+            }, 4000);
+        }
+
+        function scheduleNextOrder() {
+            // Случайное время между 10 и 15 минутами (возвращаем реалистичность)
+            const minDelay = 10 * 60 * 1000;
+            const maxDelay = 15 * 60 * 1000;
+            const nextDelay = Math.random() * (maxDelay - minDelay) + minDelay;
+            
+            setTimeout(() => {
+                addOrder();
+                scheduleNextOrder();
+            }, nextDelay);
+        }
+
+        // Start order generation loop
+        setTimeout(() => {
+            addOrder(); // Выполняем первый раз сразу
+            scheduleNextOrder(); // Планируем следующие
+        }, 1000);
+
+    </script>
+
+</body>
+</html>

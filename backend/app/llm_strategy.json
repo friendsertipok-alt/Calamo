@@ -1,0 +1,7 @@
+{
+    "llm_strategy": "auto",
+    "force_openai": false,
+    "maintenance_mode": false,
+    "max_concurrent_generations": 5,
+    "chart_engine": "echarts"
+}

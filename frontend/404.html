@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 — Страница не найдена | Calamo</title>
+    <meta name="description" content="Запрашиваемая страница не найдена. Вернитесь на главную страницу Calamo.">
+    <link rel="canonical" href="https://calamo.lol/">
+    <link rel="icon" type="image/webp" href="/assets/favicon.webp">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #030303;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background:
+                radial-gradient(circle at 30% 40%, rgba(255, 77, 0, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 70% 60%, rgba(255, 77, 0, 0.04) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            text-align: center;
+            padding: 40px 20px;
+            max-width: 600px;
+        }
+
+        .error-code {
+            font-size: clamp(120px, 20vw, 200px);
+            font-weight: 800;
+            letter-spacing: -8px;
+            background: linear-gradient(180deg, rgba(255,77,0,0.8) 0%, rgba(255,77,0,0.15) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+            margin-bottom: 20px;
+            animation: pulseGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            from { filter: brightness(0.9); }
+            to { filter: brightness(1.1); }
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 48px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 36px;
+            background: linear-gradient(135deg, #ff4d00 0%, #ff7b00 100%);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            border-radius: 14px;
+            border: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(255, 77, 0, 0.25);
+        }
+
+        .btn-home:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(255, 77, 0, 0.35);
+        }
+
+        .btn-support {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 36px;
+            background: rgba(255,255,255,0.05);
+            color: #888;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .btn-support:hover {
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .links {
+            margin-top: 60px;
+            display: flex;
+            gap: 32px;
+            justify-content: center;
+        }
+
+        .links a {
+            color: #555;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .links a:hover { color: #ff7b00; }
+
+        @media (max-width: 480px) {
+            .actions { flex-direction: column; }
+            .links { flex-direction: column; gap: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-code">404</div>
+        <h1>Страница не найдена</h1>
+        <p class="subtitle">Кажется, эта страница переехала или никогда не существовала. Но мы точно можем помочь вам с курсовой.</p>
+
+        <div class="actions">
+            <a href="/" class="btn-home">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                На главную
+            </a>
+            <a href="/support.html" class="btn-support">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                Поддержка
+            </a>
+        </div>
+
+        <div class="links">
+            <a href="/features.html">Наши технологии</a>
+            <a href="/examples.html">Примеры работ</a>
+            <a href="/pricing.html">Тарифы</a>
+        </div>
+    </div>
+</body>
+</html>

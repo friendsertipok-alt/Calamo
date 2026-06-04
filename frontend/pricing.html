@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Цены на курсовые и дипломные работы — Тарифы Calamo</title>
+    <meta name="description" content="Узнайте стоимость курсовой или дипломной работы. Выберите подходящий тариф: от реферата до дипломной работы с полной проверкой по ГОСТу.">
+    <link rel="icon" type="image/webp" href="/assets/favicon.webp">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://calamo.lol/pricing.html">
+    <meta property="og:title" content="Тарифы Calamo — Доступ к ИИ-генерации">
+    <meta property="og:description" content="Выберите свой Neural Pass: Lite Core, Pro Engine или Thesis Max.">
+    <meta property="og:image" content="https://calamo.lol/assets/og-pricing.png">
+    <link rel="canonical" href="https://calamo.lol/pricing.html">
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9VV7FG6P8P"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9VV7FG6P8P');</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050505;
+            --accent: #ff4d00;
+            --accent-glow: rgba(255, 77, 0, 0.4);
+            --text: #ffffff;
+            --text-muted: #666666;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 60px 20px 40px;
+            text-align: center;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            margin-bottom: 30px;
+            transition: 0.3s;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+        }
+
+        .back-link:hover { color: #fff; border-color: #444; }
+
+        h1 {
+            font-size: 56px;
+            font-weight: 800;
+            letter-spacing: -2px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 18px;
+            margin-bottom: 60px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .cards-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto 100px;
+            padding: 0 20px;
+            perspective: 1000px;
+        }
+
+        .pass-card {
+            background: linear-gradient(145deg, #111, #000);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            width: 350px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            transition: 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            cursor: pointer;
+            transform-style: preserve-3d;
+        }
+
+        .pass-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,77,0,0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: 0.5s;
+        }
+
+        .pass-card:hover {
+            transform: translateY(-10px) rotateX(5deg) rotateY(-5deg);
+            border-color: var(--accent);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8), 0 0 20px rgba(255,77,0,0.1);
+        }
+
+        .pass-card:hover::before { opacity: 1; }
+
+        .card-type {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .card-name {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 30px;
+            letter-spacing: -1px;
+        }
+
+        .tech-specs {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .spec-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .spec-item span:last-child { color: #fff; font-weight: 700; }
+
+        .price-box {
+            margin-top: auto;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 30px;
+        }
+
+        .price {
+            font-size: 48px;
+            font-weight: 800;
+            display: block;
+            margin-bottom: 20px;
+        }
+
+        .btn-activate {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .pass-card:hover .btn-activate {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 10px 20px var(--accent-glow);
+        }
+
+        .chip {
+            width: 40px;
+            height: 30px;
+            background: linear-gradient(135deg, #333, #111);
+            border: 1px solid #444;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .chip::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        @media (max-width: 1024px) {
+            .cards-container { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="back-link">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            EXIT_TO_MAIN
+        </a>
+        <h1>Neural Access</h1>
+        <p class="subtitle">SELECT_YOUR_CORE_LEVEL_v2.0</p>
+    </header>
+
+    <div class="cards-container">
+        <!-- Basic -->
+        <div class="pass-card">
+            <div class="chip"></div>
+            <span class="card-type">Standard access</span>
+            <h2 class="card-name">Lite Core</h2>
+            <div class="tech-specs">
+                <div class="spec-item"><span>POWER:</span><span>12 TFLOPS</span></div>
+                <div class="spec-item"><span>GOST_VER:</span><span>2024.1</span></div>
+                <div class="spec-item"><span>MAX_PAGES:</span><span>20</span></div>
+            </div>
+            <div class="price-box">
+                <span class="price">1 500 ₽</span>
+                <button class="btn-activate">Инициализация</button>
+            </div>
+        </div>
+
+        <!-- Pro -->
+        <div class="pass-card" style="border-color: rgba(255, 77, 0, 0.3); background: linear-gradient(145deg, #1a0a05, #000);">
+            <div class="chip" style="background: linear-gradient(135deg, #ff4d00, #882200); border-color: #ff4d00;"></div>
+            <span class="card-type" style="color: #fff;">Premium access</span>
+            <h2 class="card-name">Pro Engine</h2>
+            <div class="tech-specs">
+                <div class="spec-item"><span>POWER:</span><span>48 TFLOPS</span></div>
+                <div class="spec-item"><span>GOST_VER:</span><span>2024.3</span></div>
+                <div class="spec-item"><span>ANTIPLAGIARISM:</span><span>ENABLED</span></div>
+            </div>
+            <div class="price-box">
+                <span class="price">3 500 ₽</span>
+                <button class="btn-activate">Инициализация</button>
+            </div>
+        </div>
+
+        <!-- Thesis -->
+        <div class="pass-card">
+            <div class="chip"></div>
+            <span class="card-type">Academic access</span>
+            <h2 class="card-name">Thesis Max</h2>
+            <div class="tech-specs">
+                <div class="spec-item"><span>POWER:</span><span>120 TFLOPS</span></div>
+                <div class="spec-item"><span>DEEP_VERIFY:</span><span>ACTIVE</span></div>
+                <div class="spec-item"><span>MAX_PAGES:</span><span>UNLIMITED</span></div>
+            </div>
+            <div class="price-box">
+                <span class="price">12 000 ₽</span>
+                <button class="btn-activate">Инициализация</button>
+            </div>
+        </div>
+    </div>
+
+    <footer style="margin-top: auto; padding: 40px; text-align: center; color: #333; font-family: 'JetBrains Mono', monospace; font-size: 10px;">
+        CALAMO_SECURE_PAYMENT_GATEWAY_v2.0 // NO_REFUND_AFTER_INIT
+    </footer>
+
+    <script>
+        document.querySelectorAll('.pass-card').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const xc = rect.width / 2;
+                const yc = rect.height / 2;
+                const dx = x - xc;
+                const dy = y - yc;
+                card.style.transform = `translateY(-10px) rotateX(${-dy / 20}deg) rotateY(${dx / 20}deg)`;
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = `translateY(0) rotateX(0) rotateY(0)`;
+            });
+        });
+    </script>
+</body>
+</html>

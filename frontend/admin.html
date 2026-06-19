@@ -347,9 +347,7 @@ function renderDashboard(d) {
             rescueBtn += `<button class="btn-sm" style="padding:2px 6px; font-size:9px; background:rgba(239, 68, 68, 0.1); color:var(--red); border:1px solid var(--red);" onclick="cancelOrder('${o.id}')" title="Отменить полностью">⏹ Стоп</button>`;
             rescueBtn += `</div>`;
         }
-        
         const dlLink = o.download_url ? `<a class="download-link" href="${o.download_url}" target="_blank" style="display: flex; align-items: center; gap: 4px;">DOCX</a>` : '<span style="color:var(--muted)">—</span>';
-        const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '—';
         
         return `
             <tr>
@@ -366,7 +364,6 @@ function renderDashboard(d) {
                     <div style="font-size:10px; color:var(--muted); margin-top:4px; text-align:center">${o.progress}%</div>
                 </td>
                 <td>${dlLink}</td>
-                <td style="color:var(--muted); font-size:11px;">${dateStr}</td>
             </tr>`;
     }).join('');
 
@@ -599,8 +596,8 @@ function renderDashboard(d) {
         </div>
         <div class="table-container">
             <table>
-                <thead><tr><th>ID</th><th>Тема</th><th>Тип</th><th>Себестоимость</th><th>Статус</th><th>Прогресс</th><th>Файл</th><th>Дата</th></tr></thead>
-                <tbody>${ordersHTML || '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">Заказов пока нет</td></tr>'}</tbody>
+                <thead><tr><th>ID</th><th>Тема</th><th>Тип</th><th>Себестоимость</th><th>Статус</th><th>Прогресс</th><th>Файл</th></tr></thead>
+                <tbody>${ordersHTML || '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px">Заказов пока нет</td></tr>'}</tbody>
             </table>
         </div>
     `;
@@ -764,13 +761,11 @@ async function viewUserDetails(id) {
         for (const o of u.orders) {
             const st = statusBadge(o.status);
             const dl = o.download_url ? `<a class="dl-link" href="${o.download_url}" target="_blank">⬇ Скачать</a>` : '—';
-            const date = o.created_at ? new Date(o.created_at).toLocaleString('ru-RU') : '—';
             ordersHTML += `<tr>
                 <td style="color:var(--accent)">${o.id}</td>
                 <td>${truncate(o.topic, 30)}</td>
                 <td>${st}</td>
                 <td>${dl}</td>
-                <td style="color:var(--muted)">${date}</td>
             </tr>`;
         }
 
@@ -837,8 +832,8 @@ async function viewUserDetails(id) {
             <h3 style="margin-bottom: 10px; font-size: 16px;">Работы студента</h3>
             <div class="table-container" style="background: transparent;">
                 <table>
-                    <thead><tr><th>ID</th><th>Тема</th><th>Статус</th><th>Файл</th><th>Дата</th></tr></thead>
-                    <tbody>${ordersHTML || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">Нет работ</td></tr>'}</tbody>
+                    <thead><tr><th>ID</th><th>Тема</th><th>Статус</th><th>Файл</th></tr></thead>
+                    <tbody>${ordersHTML || '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted)">Нет работ</td></tr>'}</tbody>
                 </table>
             </div>
         `;
@@ -1307,13 +1302,10 @@ function renderAllOrders(orders) {
             rescueBtn += `<button class="btn-sm" style="padding:2px 6px; font-size:9px; background:rgba(239, 68, 68, 0.1); color:var(--red); border:1px solid var(--red);" onclick="cancelOrder('${o.id}')" title="Отменить полностью">⏹ Стоп</button>`;
             rescueBtn += `</div>`;
         }
-        
         const dlLink = o.download_url 
             ? `<a href="${o.download_url}" target="_blank" style="color:var(--green); text-decoration:none; font-weight:600;">DOCX</a>` 
             : '<span style="color:var(--muted)">—</span>';
-        
-        const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '—';
-        
+
         const errorHtml = o.error_message 
             ? `<div style="font-size:10px; color:var(--red); margin-top:4px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${o.error_message.replace(/"/g, '&quot;')}">${o.error_message}</div>` 
             : '';
@@ -1338,7 +1330,6 @@ function renderAllOrders(orders) {
                 <div style="font-size:10px; color:var(--muted); margin-top:4px; text-align:center">${o.progress}%</div>
             </td>
             <td>${dlLink}</td>
-            <td style="color:var(--muted); font-size:11px;">${dateStr}</td>
         </tr>`;
     }).join('');
 
@@ -1358,10 +1349,9 @@ function renderAllOrders(orders) {
                         <th>Статус</th>
                         <th>Прогресс</th>
                         <th>Файл</th>
-                        <th>Дата</th>
                     </tr>
                 </thead>
-                <tbody>${rows || '<tr><td colspan="9" style="text-align:center; color:var(--muted); padding:32px;">Заказов пока нет</td></tr>'}</tbody>
+                <tbody>${rows || '<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:32px;">Заказов пока нет</td></tr>'}</tbody>
             </table>
         </div>`;
 }

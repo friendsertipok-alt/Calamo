@@ -82,6 +82,48 @@ async def lifespan(app: FastAPI):
             
             user_id = user.id
 
+        # 1.5 Проверяем / создаем записи стоимости в LLMUsage
+        from app.models import LLMUsage
+        from datetime import datetime, timedelta
+        async with AsyncSessionLocal() as session:
+            # Заказ 1: 5634fhwj
+            stmt1 = select(LLMUsage).where(LLMUsage.order_id == "5634fhwj")
+            res1 = await session.execute(stmt1)
+            usage1 = res1.scalars().first()
+            if not usage1:
+                usage1 = LLMUsage(
+                    order_id="5634fhwj",
+                    model="gemini-1.5-pro",
+                    prompt_tokens=45000,
+                    completion_tokens=15000,
+                    total_tokens=60000,
+                    estimated_cost_rub=48.50, # в пределах 45-50р
+                    description="Полная генерация курсового проекта",
+                    created_at=datetime.utcnow() - timedelta(days=2)
+                )
+                session.add(usage1)
+                logger.info("Seeded LLMUsage for 5634fhwj (48.50 RUB)")
+
+            # Заказ 2: f0984s7g
+            stmt2 = select(LLMUsage).where(LLMUsage.order_id == "f0984s7g")
+            res2 = await session.execute(stmt2)
+            usage2 = res2.scalars().first()
+            if not usage2:
+                usage2 = LLMUsage(
+                    order_id="f0984s7g",
+                    model="gemini-1.5-pro",
+                    prompt_tokens=42000,
+                    completion_tokens=14000,
+                    total_tokens=56000,
+                    estimated_cost_rub=46.80, # в пределах 45-50р
+                    description="Полная генерация курсового проекта",
+                    created_at=datetime.utcnow() - timedelta(days=3)
+                )
+                session.add(usage2)
+                logger.info("Seeded LLMUsage for f0984s7g (46.80 RUB)")
+                
+            await session.commit()
+
         # 2. Копируем файлы
         for mock_id, filename in [("5634fhwj", "Paper_5634fhwj.docx"), ("f0984s7g", "Paper_f0984s7g.docx")]:
             src_file = settings.UPLOADS_DIR / filename

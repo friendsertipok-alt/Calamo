@@ -207,6 +207,9 @@
         try {
             const response = await fetch('/api/support/tickets', {
                 method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: formData
             });
 

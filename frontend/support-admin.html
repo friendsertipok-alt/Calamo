@@ -256,7 +256,10 @@
         try {
             const response = await fetch(`/api/support/tickets/${id}/status`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: JSON.stringify({ status: newStatus })
             });
             if (response.ok) {

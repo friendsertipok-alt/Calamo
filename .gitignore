@@ -5,7 +5,6 @@ __pycache__/
 venv/
 env/
 .env
-*.egg-info/
 
 # Node
 node_modules/
@@ -17,19 +16,7 @@ dist-ssr/
 .DS_Store
 Thumbs.db
 
-# Database
-*.db
-*.sqlite
-calamo.db
-backend/calamo.db
-
-# Secrets & Credentials
-backend/admin_emails.json
-backend/secrets/
-*.pem
-*.key
-
-# Project internals
+# Project
 output/
 backend/output/
 backend/venv/
@@ -37,14 +24,12 @@ frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 *.log
-
-# AI assistant / scratch files
-brain/
-scratch/
-MEMORY.md
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+calamo.db
+backend/calamo.db
+*.db-shm
+*.db-wal
+ai-engineering-coach/
+backend/scratch/
+backend/test_settings.docx
+backend/admin_emails.json
+backend/secrets/*.txt

@@ -5,7 +5,8 @@ import asyncio
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from app.schemas.order import GenerationProgress, OrderConfirm, OrderStatus
 from app.pipeline.generator import pipeline, orders_store
-from app.auth import get_current_user
+from app.auth import get_current_user, get_current_user_optional
+from typing import Optional
 from app.models import User, Transaction
 from app.database import get_db, AsyncSessionLocal
 from sqlalchemy import select, update
@@ -17,14 +18,9 @@ router = APIRouter()
 
 
 @router.post("/{order_id}/start")
-async def start_generation(order_id: str, background_tasks: BackgroundTasks, user: User = Depends(get_current_user)):
+async def start_generation(order_id: str, background_tasks: BackgroundTasks, user: Optional[User] = Depends(get_current_user_optional)):
     """Запустить генерацию черновика (план + источники) в фоне."""
-    stored = orders_store.get(order_id)
-    if not stored:
-        raise HTTPException(status_code=404, detail="Заказ не найден")
-
-    if stored.get("user_id") != user.id and not user.is_admin:
-        raise HTTPException(status_code=403, detail="Доступ запрещен: это не ваш заказ")
+    stored = await pipeline.check_and_claim_guest_order(order_id, user)
 
     if stored["status"] not in ("pending", "failed"):
         raise HTTPException(
@@ -35,10 +31,12 @@ async def start_generation(order_id: str, background_tasks: BackgroundTasks, use
     # --- ЗАЩИТА ОТ СПАМА (DDoS Wallet) ---
     # Лимит на бесплатные черновики: 3 в час для обычных пользователей.
     # Админы (из белого списка) — безлимитно.
-    from app.auth import load_admin_emails
-    is_admin = user.is_admin or user.email.lower() in load_admin_emails()
+    is_admin = False
+    if user:
+        from app.auth import load_admin_emails
+        is_admin = user.is_admin or user.email.lower() in load_admin_emails()
     
-    if not is_admin:
+    if not is_admin and user:
         from datetime import datetime, timedelta
         one_hour_ago = datetime.now() - timedelta(hours=1)
         
@@ -282,14 +280,9 @@ async def confirm_balance(
 
 
 @router.get("/{order_id}/progress", response_model=GenerationProgress)
-async def get_progress(order_id: str, user: User = Depends(get_current_user)):
+async def get_progress(order_id: str, user: Optional[User] = Depends(get_current_user_optional)):
     """Получить прогресс генерации."""
-    stored = orders_store.get(order_id)
-    if not stored:
-        raise HTTPException(status_code=404, detail="Заказ не найден")
-        
-    if stored.get("user_id") != user.id and not user.is_admin:
-        raise HTTPException(status_code=403, detail="Доступ запрещен: это не ваш заказ")
+    stored = await pipeline.check_and_claim_guest_order(order_id, user)
         
     progress = pipeline.get_progress(order_id)
     if not progress:

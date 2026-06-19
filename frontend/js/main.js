@@ -465,7 +465,6 @@
                 alert('Количество таблиц должно быть в пределах от 0 до 13.');
                 return;
             }
-            
             currentStep = 2;
             updateWizard();
             submitOrder();
@@ -473,6 +472,10 @@
         }
         
         if (currentStep === 3) {
+            if (!isUserAuthenticated()) {
+                showAuthModal();
+                return;
+            }
             // Если мы на шаге правок, то при нажатии "Далее" мы выходим из режима черновика
             isDraftMode = false;
         }
@@ -694,57 +697,74 @@
         }
     }
 
+    function renderChapterBlock(ch, ci, blockLocked) {
+        let blockHtml = `<div class="editor-block">
+            <div class="block-header">
+                <span class="block-num">Глава ${ch.number}</span>
+                ${blockLocked ? '' : `<button class="del-btn" onclick="removeChapter(${ci})">🗑</button>`}
+            </div>
+            <input type="text" class="form-control" value="${ch.title}" ${blockLocked ? 'disabled' : ''}
+                   onchange="draftData.outline.chapters[${ci}].title=this.value" style="margin-bottom:10px; font-weight:600;">`;
+        
+        (ch.subsections || []).forEach((sub, si) => {
+            blockHtml += `<div class="sub-block">
+                <span class="sub-num">${sub.number}</span>
+                <input type="text" class="form-control" value="${sub.title}" ${blockLocked ? 'disabled' : ''}
+                       onchange="draftData.outline.chapters[${ci}].subsections[${si}].title=this.value" style="margin-bottom:0; flex:1;">
+                ${blockLocked ? '' : `<button class="del-btn" onclick="removeSubsection(${ci},${si})">🗑</button>`}
+            </div>`;
+        });
+
+        blockHtml += `<div style="margin-left:20px; margin-top:15px; margin-bottom:10px;">
+                    <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:5px;">Индивидуальные требования для Главы ${ch.number}:</label>
+                    <textarea class="form-control" placeholder="Например: Сфокусируйся на методологии..." ${blockLocked ? 'disabled' : ''}
+                      style="min-height:60px; font-size:13px; margin-bottom:0;"
+                      onchange="draftData.chapter_prompts['${ch.number}'] = this.value">${draftData.chapter_prompts[ch.number] || ''}</textarea>
+                </div>`;
+
+        if (!blockLocked) {
+            blockHtml += `<button class="add-btn" onclick="addSubsection(${ci})" style="margin-left:20px;margin-top:5px;">+ Подраздел</button>`;
+        }
+        blockHtml += `</div>`;
+        return blockHtml;
+    }
+
     function renderChaptersEditor() {
         if (!draftData || !draftData.outline) return;
         const container = document.getElementById('chapters-list');
         const isLocked = !isUserAuthenticated();
         
+        // Hide/show the "Add Chapter" button based on lock status
+        const addChapterBtn = document.querySelector("#editor-outline button.btn-secondary");
+        if (addChapterBtn) {
+            addChapterBtn.style.display = isLocked ? 'none' : 'inline-flex';
+        }
+        
         let html = '';
-        draftData.outline.chapters.forEach((ch, ci) => {
-            const isFirst = ci === 0;
-            const blockLocked = isLocked && !isFirst;
-            
-            // Если это первая заблокированная глава — открываем контейнер с блюром и плашкой
-            if (isLocked && ci === 1) {
+        
+        // Render Chapter 1 (always unlocked)
+        if (draftData.outline.chapters.length > 0) {
+            html += renderChapterBlock(draftData.outline.chapters[0], 0, false);
+        }
+        
+        // Render Chapters 2+ (locked if guest)
+        if (draftData.outline.chapters.length > 1) {
+            if (isLocked) {
                 html += `<div class="editor-container-locked">`;
                 html += renderLockOverlay();
                 html += `<div class="content-blur">`;
             }
-
-            html += `<div class="editor-block">
-                <div class="block-header">
-                    <span class="block-num">Глава ${ch.number}</span>
-                    ${blockLocked ? '' : `<button class="del-btn" onclick="removeChapter(${ci})">🗑</button>`}
-                </div>
-                <input type="text" class="form-control" value="${ch.title}" ${blockLocked ? 'disabled' : ''}
-                       onchange="draftData.outline.chapters[${ci}].title=this.value" style="margin-bottom:10px; font-weight:600;">`;
             
-            (ch.subsections || []).forEach((sub, si) => {
-                html += `<div class="sub-block">
-                    <span class="sub-num">${sub.number}</span>
-                    <input type="text" class="form-control" value="${sub.title}" ${blockLocked ? 'disabled' : ''}
-                           onchange="draftData.outline.chapters[${ci}].subsections[${si}].title=this.value" style="margin-bottom:0; flex:1;">
-                    ${blockLocked ? '' : `<button class="del-btn" onclick="removeSubsection(${ci},${si})">🗑</button>`}
-                </div>`;
-            });
-
-            html += `<div style="margin-left:20px; margin-top:15px; margin-bottom:10px;">
-                        <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:5px;">Индивидуальные требования для Главы ${ch.number}:</label>
-                        <textarea class="form-control" placeholder="Например: Сфокусируйся на методологии..." ${blockLocked ? 'disabled' : ''}
-  style="min-height:60px; font-size:13px; margin-bottom:0;"
-  onchange="draftData.chapter_prompts['${ch.number}'] = this.value">${draftData.chapter_prompts[ch.number] || ''}</textarea>
-                    </div>`;
-
-            if (!blockLocked) {
-                html += `<button class="add-btn" onclick="addSubsection(${ci})" style="margin-left:20px;margin-top:5px;">+ Подраздел</button>`;
+            for (let ci = 1; ci < draftData.outline.chapters.length; ci++) {
+                html += renderChapterBlock(draftData.outline.chapters[ci], ci, isLocked);
             }
-            html += `</div>`;
-        });
+            
+            if (isLocked) {
+                html += `</div></div>`;
+            }
+        }
         
-        if (isLocked && draftData.outline.chapters.length > 1) {
-            html += `</div></div>`; // Закрываем content-blur и editor-container-locked
-        } else if (isLocked && draftData.outline.chapters.length === 1) {
-            // Если глава всего одна - все равно показываем плашку ниже
+        if (isLocked && draftData.outline.chapters.length === 1) {
             html += `<div class="editor-container-locked" style="min-height: 200px;">${renderLockOverlay()}</div>`;
         }
         
@@ -755,11 +775,21 @@
         return `
             <div class="lock-overlay">
                 <div class="lock-plate">
-                    <div style="font-size: 40px; margin-bottom: 15px;">🔒</div>
-                    <h3>Контент защищен</h3>
-                    <p>Чтобы увидеть полный план работы и иметь возможность редактировать его, пожалуйста, войдите в свой аккаунт.</p>
-                    <button class="btn-primary" style="width: 100%; border-radius: 12px; padding: 15px;" onclick="showAuthModal()">
-                        ✨ Войти через Google
+                    <div class="lock-plate-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2l2.09 6.26L20.18 9l-5.09 3.74L17.18 19 12 15.27 6.82 19l2.09-6.26L3.82 9l6.09-.74L12 2z"/>
+                        </svg>
+                    </div>
+                    <h3>Откройте полный доступ</h3>
+                    <p class="lock-plate-subtitle">Войдите, чтобы получить готовую работу целиком — это бесплатно и занимает 5 секунд</p>
+                    <ul class="lock-benefits">
+                        <li><span class="benefit-icon">✓</span>Полный план и все главы работы</li>
+                        <li><span class="benefit-icon">✓</span>Редактирование структуры и источников</li>
+                        <li><span class="benefit-icon">✓</span>Скачивание в формате DOCX</li>
+                    </ul>
+                    <button class="lock-cta-btn" onclick="showAuthModal()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                        Войти через Google
                     </button>
                 </div>
             </div>
@@ -770,6 +800,12 @@
         const container = document.getElementById('sources-list');
         if (!container) return;
         const isLocked = !isUserAuthenticated();
+
+        // Hide/show the "Add Source" button based on lock status
+        const addSourceBtn = document.querySelector("#editor-sources button.btn-secondary");
+        if (addSourceBtn) {
+            addSourceBtn.style.display = isLocked ? 'none' : 'inline-flex';
+        }
 
         if (!draftData || !draftData.sources || draftData.sources.length === 0) {
             container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted); background:rgba(0,0,0,0.1); border-radius:12px; border:1px dashed var(--glass-border);">Список источников пуст или еще не сгенерирован.</div>';
@@ -1287,10 +1323,72 @@
         }
     }
 
+    // Сохранение и восстановление состояния формы при авторизации
+    function saveFormState() {
+        if (!document.getElementById('f-topic')) return;
+        const state = {
+            work_type: document.getElementById('f-work_type').value,
+            subject: document.getElementById('f-subject').value,
+            topic: document.getElementById('f-topic').value,
+            volume: document.getElementById('f-volume').value,
+            volume_type: volumeType,
+            images: document.getElementById('f-images').value,
+            tables: document.getElementById('f-tables').value,
+            step: currentStep
+        };
+        localStorage.setItem('calamo_pending_order', JSON.stringify(state));
+    }
+
+    function restoreFormState() {
+        const saved = localStorage.getItem('calamo_pending_order');
+        if (!saved) return;
+        try {
+            const state = JSON.parse(saved);
+            if (state) {
+                if (document.getElementById('f-work_type')) {
+                    document.getElementById('f-work_type').value = state.work_type || 'курсовая';
+                    const trigger = document.querySelector('#work_type_select .custom-select-trigger');
+                    if (trigger) {
+                        const labelMap = {
+                            'реферат': 'Реферат',
+                            'дтз': 'Домашнее творческое задание',
+                            'курсовая': 'Курсовая работа',
+                            'вкр': 'ВКР / Диплом',
+                            'диплом': 'ВКР / Диплом',
+                            'статья': 'Научная статья'
+                        };
+                        trigger.textContent = labelMap[state.work_type] || 'Курсовая работа';
+                    }
+                }
+                if (document.getElementById('f-subject')) document.getElementById('f-subject').value = state.subject || '';
+                if (document.getElementById('f-topic')) document.getElementById('f-topic').value = state.topic || '';
+                if (document.getElementById('f-volume')) document.getElementById('f-volume').value = state.volume || '35';
+                if (state.volume_type) {
+                    volumeType = state.volume_type;
+                    setVolumeType(state.volume_type);
+                }
+                if (document.getElementById('f-images')) document.getElementById('f-images').value = state.images || '2';
+                if (document.getElementById('f-tables')) document.getElementById('f-tables').value = state.tables || '2';
+                
+                openForm();
+                
+                if (isUserAuthenticated()) {
+                    localStorage.removeItem('calamo_pending_order');
+                    setTimeout(() => {
+                        nextStep();
+                    }, 500);
+                }
+            }
+        } catch (e) {
+            console.error("Error restoring form state:", e);
+        }
+    }
+
     // === AUTH LOGIC ===
     async function handleLogin(provider) {
         if (provider === 'google') {
             try {
+                saveFormState();
                 const res = await apiFetch(`${API_BASE_URL}/auth/google/url`);
                 const data = await res.json();
                 window.location.href = data.url; // Перенаправляем в Google
@@ -1328,6 +1426,9 @@
             if (getCookie('logged_in_status')) {
                 document.cookie = 'logged_in_status=; Max-Age=0; path=/';
             }
+            localStorage.removeItem('auth_token');
+            authToken = null;
+            currentUser = null;
         }
     }
 
@@ -1467,6 +1568,9 @@ onclick="deleteWork('${w.id}')" title="Удалить">
             console.error("Logout error", e);
         }
         document.cookie = 'logged_in_status=; Max-Age=0; path=/';
+        localStorage.removeItem('auth_token');
+        authToken = null;
+        currentUser = null;
         window.location.reload();
     }
 
@@ -1480,10 +1584,13 @@ onclick="deleteWork('${w.id}')" title="Удалить">
             fetchMyWorks();
         }
         
-        // Если есть активный заказ, возвращаемся к нему
+        // Если есть активный заказ, возвращаемся к нему во всех случаях, игнорируя сохраненную черновик-форму
         if (currentOrderId && currentOrderId !== 'null') {
+            localStorage.removeItem('calamo_pending_order');
             resumeOrder(currentOrderId);
         } else {
+            // Восстанавливаем сохраненную форму, если есть
+            restoreFormState();
             checkActiveOrder();
         }
     })();

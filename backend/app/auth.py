@@ -68,6 +68,13 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     return user
 
 
+async def get_current_user_optional(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        return await get_current_user(request, db)
+    except Exception:
+        return None
+
+
 # --- Админ-защита ---
 import json
 from pathlib import Path

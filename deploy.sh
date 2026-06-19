@@ -10,15 +10,7 @@ git commit -m "${1:-update}" || echo "Nothing to commit"
 echo "🚀 Pushing to GitHub..."
 git push origin main
 
-# 🔄 Updating server (requires SSH config)
-# Set these environment variables or configure in ~/.ssh/config:
-#   DEPLOY_HOST — your server IP or hostname
-#   DEPLOY_USER — SSH user (default: root)
-#   SSH_KEY_PATH — path to SSH private key
-DEPLOY_USER="${DEPLOY_USER:-root}"
-DEPLOY_HOST="${DEPLOY_HOST:?Set DEPLOY_HOST env variable}"
-SSH_KEY_PATH="${SSH_KEY_PATH:-~/.ssh/id_rsa}"
-
-ssh -i "${SSH_KEY_PATH}" "${DEPLOY_USER}@${DEPLOY_HOST}" "cd /opt/calamo && git pull origin main && docker compose build && docker compose up -d"
+# 🔄 Updating server...
+ssh -i ~/.ssh/antigravity_key root@185.5.75.211 "cd /opt/calamo && git pull origin main && docker compose build && docker compose up -d && docker compose restart nginx"
 
 echo "✅ Deploy complete! https://calamo.lol"

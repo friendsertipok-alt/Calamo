@@ -15,7 +15,9 @@ class Settings(BaseSettings):
         "https://calamo.lol", 
         "http://calamo.lol",
         "http://localhost:8000", 
-        "http://127.0.0.1:8000",
+        "http://127.0.0.1:8000", 
+        "http://185.5.75.211",
+        "http://185.5.75.211:8000"
     ]
     
     # Postgres

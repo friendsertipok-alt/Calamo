@@ -13,6 +13,7 @@ from docx.oxml.ns import qn, nsdecls
 from docx.oxml import parse_xml
 from lxml import etree
 import re
+from urllib.parse import unquote
 import copy
 import logging
 import latex2mathml.converter
@@ -36,14 +37,14 @@ class DocxBuilder:
         self._setup_page_layout()
         self._setup_footnotes_part()
         self._setup_footnote_styles()
-        # self._enable_update_fields()  # Отключено: нарушает XSD-последовательность w:settings
+        self._enable_update_fields()
 
     def _enable_update_fields(self):
         """Включает флаг принудительного обновления полей (TOC) при открытии документа."""
         from docx.oxml.ns import nsdecls
         from docx.oxml import parse_xml
         element = parse_xml(r'<w:updateFields %s w:val="true"/>' % nsdecls('w'))
-        self.doc.settings.element.append(element)
+        self.doc.settings.element.insert(0, element)
 
     def _setup_page_layout(self):
         """Настройка полей страницы по ГОСТу."""
@@ -204,43 +205,42 @@ class DocxBuilder:
             hyperlink.font.color.rgb = RGBColor(0, 0, 255) # Синий
             hyperlink.font.underline = True
 
-        # Стили для оглавления (Calamo TOC)
+        # Стили для оглавления (Calamo TOC и встроенные TOC)
         for i in range(1, 4):
-            style_name = f'Calamo TOC {i}'
-            try:
-                if style_name in self.doc.styles:
-                    s = self.doc.styles[style_name]
-                else:
-                    s = self.doc.styles.add_style(style_name, 1)
-                
-                # Изолируем стиль от Normal, чтобы настройки не "слетали" при наследовании
-                s.base_style = None
-                
-                s.font.name = "Times New Roman"
-                s.font.size = Pt(14)
-                s.font.bold = False
-                s.font.color.rgb = RGBColor(0, 0, 0)
-                
-                # Через python-docx API (дублируем)
-                s.paragraph_format.left_indent = Cm(0)
-                s.paragraph_format.right_indent = Cm(0)
-                s.paragraph_format.first_line_indent = Cm(1.25)
-                s.paragraph_format.space_before = Pt(0)
-                s.paragraph_format.space_after = Pt(0)
-                s.paragraph_format.line_spacing = 1.5
-                s.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                
-                # Табуляторы через безопасное API python-docx
-                from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
-                
-                # Очищаем старые табы, если есть
-                for ts in s.paragraph_format.tab_stops:
-                    s.paragraph_format.tab_stops[0].clear()
+            for style_name in [f'Calamo TOC {i}', f'TOC {i}']:
+                try:
+                    if style_name in self.doc.styles:
+                        s = self.doc.styles[style_name]
+                    else:
+                        s = self.doc.styles.add_style(style_name, 1)
                     
-                s.paragraph_format.tab_stops.add_tab_stop(Cm(17.0), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
-                
-            except Exception as e:
-                logger.error(f"Failed to style {style_name}: {e}")
+                    # Изолируем стиль от Normal, чтобы настройки не "слетали" при наследовании
+                    s.base_style = None
+                    
+                    s.font.name = "Times New Roman"
+                    s.font.size = Pt(14)
+                    s.font.bold = False
+                    s.font.color.rgb = RGBColor(0, 0, 0)
+                    
+                    # Через python-docx API (дублируем)
+                    s.paragraph_format.left_indent = Cm(0)
+                    s.paragraph_format.right_indent = Cm(0)
+                    s.paragraph_format.first_line_indent = Cm(1.25)
+                    s.paragraph_format.space_before = Pt(0)
+                    s.paragraph_format.space_after = Pt(0)
+                    s.paragraph_format.line_spacing = 1.5
+                    s.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                    
+                    # Табуляторы через безопасное API python-docx
+                    from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
+                    
+                    # Очищаем старые табы, если есть
+                    for ts in s.paragraph_format.tab_stops:
+                        s.paragraph_format.tab_stops[0].clear()
+                        
+                    s.paragraph_format.tab_stops.add_tab_stop(Cm(17.0), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
+                except Exception as e:
+                    logger.error(f"Failed to style {style_name}: {e}")
 
     def add_title_page(
         self,
@@ -386,7 +386,12 @@ class DocxBuilder:
         h = self.doc.add_heading(level=1)
         h.alignment = WD_ALIGN_PARAGRAPH.CENTER
         
-        title_clean = self._sanitize_text(title.strip().upper())
+        # Очистка префиксов
+        title_clean = title.strip()
+        title_clean = re.sub(r'(?i)^(Глава|Chapter|Раздел)\s+(\d+|[IVXLCDM]+|первая|вторая|третья|четвертая|пятая|шестая|седьмая|восьмая|девятая|десятая)\b[.:\s]*', '', title_clean).strip()
+        title_clean = re.sub(r'^\d+[.:\s]+', '', title_clean).strip()
+        
+        title_clean = self._sanitize_text(title_clean.upper())
         run = h.add_run(f"ГЛАВА {number}. {title_clean}")
         run.font.name = "Times New Roman"
         run.font.size = Pt(14)
@@ -397,10 +402,17 @@ class DocxBuilder:
     def add_heading_section(self, number: str, title: str):
         """Добавление заголовка параграфа (1.1. НАЗВАНИЕ)."""
         h = self.doc.add_heading(level=2)
-        # Подглавы (параграфы) НЕ КАПСОМ, а в формате "Первая буква заглавная"
-        raw_title = title.strip()
+        # Очистка префиксов
+        title_clean = title.strip()
+        title_clean = re.sub(r'(?i)^(Параграф|Раздел|Subsection|Subchapter)?\s*\d+(?:\.\d+)+[.:\s]*', '', title_clean).strip()
+        
+        raw_title = title_clean
         if raw_title:
-            clean_title = raw_title[0].upper() + raw_title[1:].lower()
+            has_lowercase = any(c.islower() for c in raw_title)
+            if not has_lowercase:
+                clean_title = raw_title[0].upper() + raw_title[1:].lower()
+            else:
+                clean_title = raw_title[0].upper() + raw_title[1:]
         else:
             clean_title = ""
         
@@ -502,11 +514,10 @@ class DocxBuilder:
         text = re.sub(r'(\s|^)"', r'\1«', text)
         text = re.sub(r'"([\s.,!?;:)]|$)', r'»\1', text)
 
-        # 6. Механическая замена тире: любые длинные тире и тире между пробелами -> среднее тире –
-        text = text.replace('\u2014', '\u2013')  # em-dash -> en-dash
-        text = text.replace(' — ', ' – ')        # на всякий случай явно
-        text = text.replace(' - ', ' – ')
-        text = text.replace(' ― ', ' – ')
+        # 6. Механическая замена тире: любые длинные тире, двойные/тройные дефисы и тире между пробелами -> среднее тире –
+        text = re.sub(r'---|\u2014|\u2015|--|\u2212', '\u2013', text)
+        text = re.sub(r'\s+-\s+', ' \u2013 ', text)
+        text = re.sub(r'\s+[\u2013\u2014]\s+', ' \u2013 ', text)
 
         return text.strip()
 
@@ -546,8 +557,59 @@ class DocxBuilder:
                 for run in p.runs:
                     run.font.size = Pt(12)  # Уменьшаем шрифт до 12 pt
 
+    def _move_footnotes_to_periods(self, text: str) -> str:
+        """Перемещает сноски [N] посреди предложения строго за ближайшую точку в конце предложения."""
+        if not text:
+            return ""
+        footnote_re = r'\[\d+(?:\s*,\s*\d+)*(?:,\s*с\.\s*\d+(?:-\d+)?)?\]'
+        
+        # Шаг 1: переносим '[1].' или '[1] .' -> '.[1]'
+        text = re.sub(r'(' + footnote_re + r')\s*\.', r'.\1', text)
+        
+        # Шаг 2: убираем пробел между точкой и сноской: '. [1]' -> '.[1]'
+        text = re.sub(r'\.\s+(' + footnote_re + r')', r'.\1', text)
+        
+        # Шаг 3: Перемещаем все "сиротские" сноски (без точки спереди) к первой точке справа
+        while True:
+            match = re.search(r'([^.\]\s])\s*(' + footnote_re + r')', text)
+            if not match:
+                break
+                
+            fn = match.group(2)
+            start_idx = match.start(2)
+            end_idx = match.end(2)
+            
+            # Ищем следующую точку после этой сноски
+            rest = text[end_idx:]
+            dot_match = re.search(r'\.', rest)
+            if dot_match:
+                dot_pos_in_rest = dot_match.end()
+                before_fn = text[:start_idx].rstrip(' ')
+                between = text[end_idx:end_idx + dot_pos_in_rest]
+                after = text[end_idx + dot_pos_in_rest:]
+                text = before_fn + between + fn + after
+            else:
+                # Если точки справа нет, переносим в конец и ставим точку
+                before_fn = text[:start_idx].rstrip(' ')
+                between = text[end_idx:]
+                text = before_fn + between
+                if text.endswith('.'):
+                    text = text + fn
+                else:
+                    text = text + '.' + fn
+                    
+        # Чистим двойные пробелы
+        text = re.sub(r' +', ' ', text)
+        # Убираем пробелы перед точкой
+        text = re.sub(r'\s+\.', '.', text)
+        # Убираем пробелы между точкой и сноской
+        text = re.sub(r'\.\s+(' + footnote_re + r')', r'.\1', text)
+        
+        return text
+
     def _add_text_with_footnotes(self, paragraph, text: str):
         """Парсинг маркеров [N], [N, M] и формул в тексте."""
+        text = self._move_footnotes_to_periods(text)
         # Паттерн для сносок: ловим [1] и убираем съедание ведущего пробела перед скобкой
         footnote_pattern = r'\[(?P<ids>\d+(?:\s*,\s*\d+)*)(?:,\s*с\.\s*(?P<page>\d+(?:-\d+)?))?\]'
         eq_pattern = r'\[EQUATION\](?P<eq1>.*?)\[/EQUATION\]'
@@ -576,15 +638,13 @@ class DocxBuilder:
                     if source_obj:
                         citation = source_obj.citation or source_obj.title or ""
                         url = source_obj.url
+                        citation = citation.rstrip('. ')
+                        # Если источников несколько, страницу пишем только в последнем или в каждом? 
+                        # По ГОСТу лучше в каждом, если это разные книги.
+                        footnote_text = f"{citation}. — С. {page_info}." if page_info else f"{citation}."
+                        self._insert_footnote(paragraph, footnote_text, url)
                     else:
-                        citation = f"Источник №{source_num}"
-                        url = None
-                    
-                    citation = citation.rstrip('. ')
-                    # Если источников несколько, страницу пишем только в последнем или в каждом? 
-                    # По ГОСТу лучше в каждом, если это разные книги.
-                    footnote_text = f"{citation}. — С. {page_info}." if page_info else f"{citation}."
-                    self._insert_footnote(paragraph, footnote_text, url)
+                        logger.warning(f"Footnote source #{source_num} not found in sources_dict, skipping.")
                 
             elif match.group('hyperlink'):
                 url = match.group('url').strip()
@@ -737,8 +797,9 @@ class DocxBuilder:
             if link_match:
                 url_to_insert = link_match.group('url').strip()
                 # Удаляем сам тег из текста, чтобы он не печатался
-                display_text = footnote_text.replace(link_match.group(0), url_to_insert)
-                parts = display_text.split(url_to_insert)
+                display_url = unquote(url_to_insert)
+                display_text = footnote_text.replace(link_match.group(0), display_url)
+                parts = display_text.split(display_url)
                 
                 # Часть ДО ссылки
                 if parts[0]:
@@ -759,7 +820,7 @@ class DocxBuilder:
                 fn_rStyle_link.set('{%s}val' % W, 'Hyperlink')
                 etree.SubElement(fn_rPr_link, '{%s}sz' % W).set('{%s}val' % W, '20')
                 fn_t_link = etree.SubElement(fn_r_link, '{%s}t' % W)
-                fn_t_link.text = url_to_insert
+                fn_t_link.text = display_url
                 
                 # Часть ПОСЛЕ ссылки
                 if len(parts) > 1 and parts[1]:
@@ -784,14 +845,13 @@ class DocxBuilder:
 
         # --- 2. Вставляем ссылку на сноску в параграф ---
         run = paragraph.add_run()
+        try:
+            run.style = 'CalamoFootnoteReference'
+        except Exception:
+            pass
         run.font.name = 'Times New Roman'
         run.font.size = Pt(14)
-        
-        rPr_xml = ('<w:rPr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-                   '<w:rStyle w:val="CalamoFootnoteReference"/>'
-                   '<w:vertAlign w:val="superscript"/></w:rPr>')
-        rPr_el = etree.fromstring(rPr_xml)
-        run._element.insert(0, rPr_el)
+        run.font.superscript = True
 
         ref_xml = ('<w:footnoteReference xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
                    f' w:id="{fid}"/>')
@@ -824,7 +884,7 @@ class DocxBuilder:
             # Источник под рисунком
             self._add_source_paragraph(source)
 
-    def add_table_data(self, table_number: int, title: str, headers: list, rows: list, source: str = "составлено автором", skip_header: bool = False):
+    def add_table_data(self, table_number: int, title: str, headers: list, rows: list, source: str = "подготовлено автором", skip_header: bool = False):
         """Добавление таблицы с подписью СВЕРХУ по ГОСТу."""
         if not skip_header:
             p = self.doc.add_paragraph()
@@ -960,7 +1020,7 @@ class DocxBuilder:
             
             # Сама ссылка
             url = match.group('url').strip()
-            self._add_hyperlink(src_p, url, url, font_size=12)
+            self._add_hyperlink(src_p, url, unquote(url), font_size=12)
             
             last_idx = match.end()
             
@@ -989,8 +1049,9 @@ class DocxBuilder:
             if link_match:
                 url_to_insert = link_match.group('url').strip()
                 # Удаляем сам тег из текста, чтобы он не печатался
-                display_text = citation_text.replace(link_match.group(0), url_to_insert)
-                parts = display_text.split(url_to_insert)
+                display_url = unquote(url_to_insert)
+                display_text = citation_text.replace(link_match.group(0), display_url)
+                parts = display_text.split(display_url)
                 
                 # Часть ДО ссылки (включая номер)
                 run = p.add_run(f"{source.number}. {parts[0]}")
@@ -999,9 +1060,9 @@ class DocxBuilder:
                 
                 # Кликабельная ссылка
                 try:
-                    self._add_hyperlink(p, url_to_insert, url_to_insert, font_size=14)
+                    self._add_hyperlink(p, url_to_insert, display_url, font_size=14)
                 except Exception:
-                    run_url = p.add_run(url_to_insert)
+                    run_url = p.add_run(display_url)
                     run_url.font.name = "Times New Roman"
                     run_url.font.size = Pt(14)
                 

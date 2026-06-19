@@ -52,6 +52,151 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Blacklist cleanup on startup skipped: {e}")
     
+    # --- SEED MOCK USER AND ORDER ---
+    try:
+        from app.database import AsyncSessionLocal
+        from app.models import User
+        from app.pipeline.generator import orders_store, _save_orders
+        from sqlalchemy import select
+        import shutil
+
+        # 1. Проверяем / создаем пользователя
+        async with AsyncSessionLocal() as session:
+            stmt = select(User).where(User.email == "pobedonosec756@gmail.com")
+            res = await session.execute(stmt)
+            user = res.scalars().first()
+            if not user:
+                user = User(
+                    email="pobedonosec756@gmail.com",
+                    full_name="Мария Плоткина",
+                    provider="google",
+                    provider_id="pobedonosec756_google_id",
+                    balance=0.0
+                )
+                session.add(user)
+                await session.commit()
+                await session.refresh(user)
+                logger.info(f"Mock user created with ID {user.id}")
+            else:
+                logger.info(f"Mock user already exists with ID {user.id}")
+            
+            user_id = user.id
+
+        # 2. Копируем файлы
+        for mock_id, filename in [("5634fhwj", "Paper_5634fhwj.docx"), ("f0984s7g", "Paper_f0984s7g.docx")]:
+            src_file = settings.UPLOADS_DIR / filename
+            dest_dir = settings.OUTPUT_DIR / mock_id
+            dest_file = dest_dir / filename
+            if src_file.exists():
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                if not dest_file.exists() or dest_file.stat().st_size != src_file.stat().st_size:
+                    shutil.copy2(src_file, dest_file)
+                    logger.info(f"Copied mock file to {dest_file}")
+            else:
+                logger.warning(f"Mock source file not found at {src_file}")
+
+        # 3. Инжектим заказы в orders_store
+        if "plotsmar" in orders_store:
+            del orders_store["plotsmar"]
+
+        orders_store["5634fhwj"] = {
+            "id": "5634fhwj",
+            "user_id": user_id,
+            "data": {
+                "topic": "Влияние корпоративной культуры на эффективность работы компании (на примере ООО «Яндекс»)",
+                "work_type": "курсовая",
+                "subject": "Менеджмент",
+                "university": "Финансовый университет при Правительстве Российской Федерации",
+                "student_name": "Плоткина Мария",
+                "student_group": "Высшая школа управления",
+                "teacher_name": "Иванов И.И.",
+                "teacher_title": "доцент, к.э.н.",
+                "pages_count": 35,
+                "tables_count": 2,
+                "figures_count": 2,
+                "target_words": 7500
+            },
+            "status": "completed",
+            "progress": 100,
+            "current_step": "Работа готова!",
+            "steps_completed": [
+                "Введение написано",
+                "Материалы источников изучены",
+                "Проектирование таблиц и графиков",
+                "Глава 1 написана",
+                "Глава 2 написана",
+                "Заключение написано",
+                "Документ собран и готов к скачиванию"
+            ],
+            "download_url": f"/output/5634fhwj/Paper_5634fhwj.docx",
+            "error_message": None,
+            "logs": [
+                "[10:00:00] Заказ создан. Ожидание запуска.",
+                "[10:05:00] Генерация плана работы...",
+                "[10:10:00] Подбор источников...",
+                "[10:15:00] Написание введения...",
+                "[10:20:00] Генерация графиков и таблиц...",
+                "[10:35:00] Написание глав...",
+                "[10:50:00] Написание заключения...",
+                "[10:55:00] Сборка документа Word...",
+                "[11:00:00] Документ успешно собран: Paper_5634fhwj.docx",
+                "[11:00:00] Статус: Работа готова! (100%)"
+            ],
+            "created_at": "2026-06-17T11:00:00.000000"
+        }
+
+        orders_store["f0984s7g"] = {
+            "id": "f0984s7g",
+            "user_id": user_id,
+            "data": {
+                "topic": "Разработка продуктовой стратегии компании в сфере онлайн-ритейла",
+                "work_type": "курсовая",
+                "subject": "Электронная коммерция",
+                "university": "Финансовый университет при Правительстве Российской Федерации",
+                "student_name": "Алексеев А.А.",
+                "student_group": "Высшая школа управления",
+                "teacher_name": "Петров П.П.",
+                "teacher_title": "доцент, к.э.н.",
+                "pages_count": 30,
+                "tables_count": 2,
+                "figures_count": 2,
+                "target_words": 6500
+            },
+            "status": "completed",
+            "progress": 100,
+            "current_step": "Работа готова!",
+            "steps_completed": [
+                "Введение написано",
+                "Материалы источников изучены",
+                "Проектирование таблиц и графиков",
+                "Глава 1 написана",
+                "Глава 2 написана",
+                "Заключение написано",
+                "Документ собран и готов к скачиванию"
+            ],
+            "download_url": f"/output/f0984s7g/Paper_f0984s7g.docx",
+            "error_message": None,
+            "logs": [
+                "[14:00:00] Заказ создан. Ожидание запуска.",
+                "[14:05:00] Генерация плана работы...",
+                "[14:10:00] Подбор источников...",
+                "[14:15:00] Написание введения...",
+                "[14:20:00] Генерация графиков и таблиц...",
+                "[14:35:00] Написание глав...",
+                "[14:50:00] Написание заключения...",
+                "[14:55:00] Сборка документа Word...",
+                "[15:00:00] Документ успешно собран: Paper_f0984s7g.docx",
+                "[15:00:00] Статус: Работа готова! (100%)"
+            ],
+            "created_at": "2026-06-16T15:30:00.000000"
+        }
+
+        _save_orders(orders_store)
+        logger.info("Mock orders 5634fhwj and f0984s7g injected/updated in orders_store")
+
+    except Exception as e:
+        logger.error(f"Failed to seed mock user/order: {e}", exc_info=True)
+    
     yield
 
 app.router.lifespan_context = lifespan

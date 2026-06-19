@@ -152,6 +152,9 @@ class PipelineOrchestrator:
         """Генерация первой части работы (План и Источники - Черновик)."""
         logger.info(f"Начало генерации черновика для заказа {order_id}")
         
+        stored_order = orders_store.get(order_id)
+        is_guest = stored_order.get("user_id") is None if stored_order else True
+        
         # 1. План работы
         self._update_status(order_id, OrderStatus.GENERATING_OUTLINE, 5, "Генерация плана работы...")
         try:
@@ -160,61 +163,143 @@ class PipelineOrchestrator:
                 topic=topic,
                 subject=subject,
                 work_type=work_type,
-                pages_count=pages_count
+                pages_count=pages_count,
+                is_guest=is_guest
             )
             orders_store[order_id]["draft_outline"] = outline.model_dump()
         except Exception as e:
             logger.error(f"Ошибка при генерации плана: {e}")
             raise
 
-        # 2. Источники (в 3 этапа по 7-8 штук для гарантированного обхода лимитов)
-        self._update_status(order_id, OrderStatus.GENERATING_SOURCES, 15, "Подбор источников (этап 1/3)...")
-        try:
-            await self._check_status(order_id)
-            # Первый батч (8 штук)
-            batch1 = await llm_service.generate_sources(
-                topic=topic,
-                subject=subject,
-                work_type=work_type,
-                count=8
-            )
-            
-            self._update_status(order_id, OrderStatus.GENERATING_SOURCES, 17, "Подбор источников (этап 2/3)...")
-            exclude = [s.title for s in batch1 if s.title]
-            await self._check_status(order_id)
-            batch2 = await llm_service.generate_sources(
-                topic=topic,
-                subject=subject,
-                work_type=work_type,
-                count=7,
-                exclude_titles=exclude
-            )
-            
-            self._update_status(order_id, OrderStatus.GENERATING_SOURCES, 19, "Подбор источников (этап 3/3)...")
-            exclude.extend([s.title for s in batch2 if s.title])
-            await self._check_status(order_id)
-            batch3 = await llm_service.generate_sources(
-                topic=topic,
-                subject=subject,
-                work_type=work_type,
-                count=7,
-                exclude_titles=exclude
-            )
-            
-            sources = batch1 + batch2 + batch3
-            
-            sources = await validate_and_clean_sources(sources)
-            
-            # Перенумеруем источники для порядка (ПОСЛЕ очистки)
-            for i, s in enumerate(sources):
-                s.number = i + 1
-                
+        # 2. Источники
+        if is_guest:
+            self._update_status(order_id, OrderStatus.GENERATING_SOURCES, 15, "Подготовка демонстрационного списка источников...")
+            await asyncio.sleep(1.5)
+            sources = [
+                SourceItem(
+                    number=1,
+                    type="book",
+                    title="Алексеев, С. С. Общая теория права : учебник / С. С. Алексеев. – 2-е изд., перераб. и доп. – Москва : Проспект, 2024. – 576 с. – подготовлено автором на основе источника: Алексеев С.С.",
+                    citation="Алексеев, С. С. Общая теория права : учебник / С. С. Алексеев. – 2-е изд., перераб. и доп. – Москва : Проспект, 2024. – 576 с. – подготовлено автором на основе источника: Алексеев С.С.",
+                    url="https://cyberleninka.ru/article/n/teoriya-prava",
+                    year=2024,
+                    pages_total=576
+                ),
+                SourceItem(
+                    number=2,
+                    type="article",
+                    title="Иванов, И. И. Оценка эффективности правового регулирования / И. И. Иванов // Вестник Санкт-Петербургского университета. Серия 14. Право. – 2025. – Т. 16, № 2. – С. 210–225. – подготовлено автором на основе источника: Иванов И.И.",
+                    citation="Иванов, И. И. Оценка эффективности правового регулирования / И. И. Иванов // Вестник Санкт-Петербургского университета. Серия 14. Право. – 2025. – Т. 16, № 2. – С. 210–225. – подготовлено автором на основе источника: Иванов И.И.",
+                    url="https://cyberleninka.ru/article/n/pravovoe-regulirovanie",
+                    year=2025,
+                    pages_total=15
+                ),
+                SourceItem(
+                    number=3,
+                    type="book",
+                    title="Тихомиров, Ю. А. Административное право и процесс : полный курс / Ю. А. Тихомиров. – Москва : Изд. Тихомирова М. Ю., 2025. – 697 с. – подготовлено автором на основе источника: Тихомиров Ю.А.",
+                    citation="Тихомиров, Ю. А. Административное право и процесс : полный курс / Ю. А. Тихомиров. – Москва : Изд. Тихомирова М. Ю., 2025. – 697 с. – подготовлено автором на основе источника: Тихомиров Ю.А.",
+                    url="https://cyberleninka.ru/article/n/adm-pravo",
+                    year=2025,
+                    pages_total=697
+                ),
+                SourceItem(
+                    number=4,
+                    type="article",
+                    title="Петров, П. П. Методология научных исследований в современных условиях / П. П. Петров // Социологические исследования. – 2026. – № 1. – С. 45–56. – подготовлено автором на основе источника: Петров П.П.",
+                    citation="Петров, П. П. Методология научных исследований в современных условиях / П. П. Петров // Социологические исследования. – 2026. – № 1. – С. 45–56. – подготовлено автором на основе источника: Петров П.П.",
+                    url="https://cyberleninka.ru/article/n/metodologiya",
+                    year=2026,
+                    pages_total=12
+                ),
+                SourceItem(
+                    number=5,
+                    type="book",
+                    title="Баранов, В. М. Теория государства и права : практикум / В. М. Баранов. – Москва : Юрайт, 2026. – 412 с. – подготовлено автором на основе источника: Баранов В.М.",
+                    citation="Баранов, В. М. Теория государства и права : практикум / В. М. Баранов. – Москва : Юрайт, 2026. – 412 с. – подготовлено автором на основе источника: Баранов В.М.",
+                    url="https://cyberleninka.ru/article/n/tgp-praktikum",
+                    year=2026,
+                    pages_total=412
+                ),
+                SourceItem(
+                    number=6,
+                    type="article",
+                    title="Смирнов, С. А. Оптимизация бизнес-процессов в цифровой экономике / С. А. Смирнов // Вопросы экономики. – 2025. – № 8. – С. 89–104. – подготовлено автором на основе источника: Смирнов С.А.",
+                    citation="Смирнов, С. А. Оптимизация бизнес-процессов в цифровой экономике / С. А. Смирнов // Вопросы экономики. – 2025. – № 8. – С. 89–104. – подготовлено автором на основе источника: Смирнов С.А.",
+                    url="https://cyberleninka.ru/article/n/digital-economy",
+                    year=2025,
+                    pages_total=16
+                ),
+                SourceItem(
+                    number=7,
+                    type="book",
+                    title="Кузнецов, А. В. Макроэкономический анализ : учебное пособие / А. В. Кузнецов. – Санкт-Петербург : Питер, 2024. – 320 с. – подготовлено автором на основе источника: Кузнецов А.В.",
+                    citation="Кузнецов, А. В. Макроэкономический анализ : учебное пособие / А. В. Кузнецов. – Санкт-Петербург : Питер, 2024. – 320 с. – подготовлено автором на основе источника: Кузнецов А.В.",
+                    url="https://cyberleninka.ru/article/n/macroeconomics",
+                    year=2024,
+                    pages_total=320
+                ),
+                SourceItem(
+                    number=8,
+                    type="article",
+                    title="Сидоров, В. А. Перспективы развития информационных систем / В. А. Сидоров // Информационные технологии. – 2026. – Т. 32, № 3. – С. 145–158. – подготовлено автором на основе источника: Сидоров В.А.",
+                    citation="Сидоров, В. А. Перспективы развития информационных систем / В. А. Сидоров // Информационные технологии. – 2026. – Т. 32, № 3. – С. 145–158. – подготовлено автором на основе источника: Сидоров В.А.",
+                    url="https://cyberleninka.ru/article/n/inf-sys",
+                    year=2026,
+                    pages_total=14
+                ),
+            ]
             orders_store[order_id]["draft_sources"] = [s.model_dump() for s in sources]
-            self._add_log(order_id, f"Черновик готов: план ({len(outline.chapters)} глав) и {len(sources)} источников.")
-        except Exception as e:
-            logger.error(f"Ошибка при генерации источников: {e}")
-            self._add_log(order_id, f"КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
-            raise
+            self._add_log(order_id, f"Черновик (демо-режим) готов: план ({len(outline.chapters)} глав) и {len(sources)} источников.")
+        else:
+            # 2. Источники (в 3 этапа по 12 штук для гарантированного обхода лимитов)
+            self._update_status(order_id, OrderStatus.GENERATING_SOURCES, 15, "Подбор источников (этап 1/3)...")
+            try:
+                await self._check_status(order_id)
+                # Первый батч (12 штук)
+                batch1 = await llm_service.generate_sources(
+                    topic=topic,
+                    subject=subject,
+                    work_type=work_type,
+                    count=12
+                )
+                
+                self._update_status(order_id, OrderStatus.GENERATING_SOURCES, 17, "Подбор источников (этап 2/3)...")
+                exclude = [s.title for s in batch1 if s.title]
+                await self._check_status(order_id)
+                batch2 = await llm_service.generate_sources(
+                    topic=topic,
+                    subject=subject,
+                    work_type=work_type,
+                    count=12,
+                    exclude_titles=exclude
+                )
+                
+                self._update_status(order_id, OrderStatus.GENERATING_SOURCES, 19, "Подбор источников (этап 3/3)...")
+                exclude.extend([s.title for s in batch2 if s.title])
+                await self._check_status(order_id)
+                batch3 = await llm_service.generate_sources(
+                    topic=topic,
+                    subject=subject,
+                    work_type=work_type,
+                    count=12,
+                    exclude_titles=exclude
+                )
+                
+                sources = batch1 + batch2 + batch3
+                
+                sources = await validate_and_clean_sources(sources, topic=topic)
+                
+                # Перенумеруем источники для порядка (ПОСЛЕ очистки)
+                for i, s in enumerate(sources):
+                    s.number = i + 1
+                    
+                orders_store[order_id]["draft_sources"] = [s.model_dump() for s in sources]
+                self._add_log(order_id, f"Черновик готов: план ({len(outline.chapters)} глав) и {len(sources)} источников.")
+            except Exception as e:
+                logger.error(f"Ошибка при генерации источников: {e}")
+                self._add_log(order_id, f"КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
+                raise
             
         self._update_status(order_id, OrderStatus.DRAFT_READY, 20, "Ожидание утверждения черновика")
         return outline, sources
@@ -425,64 +510,95 @@ class PipelineOrchestrator:
                         visuals_registry[("ГРАФИК", num)] = (ds, str(path))
                         visuals_registry[("РИСУНОК", num)] = (ds, str(path))
 
-                # 4. Обрабатываем остальной план
+                # 4. Проход 1: Сначала генерируем спецификации для всех ТАБЛИЦ (TABLE)
                 for item in v_plan.items:
+                    if item.visual_type != "TABLE":
+                        continue
+                        
                     s_num = item.section_number
                     if s_num not in section_visuals: section_visuals[s_num] = []
                     
                     ch_num = s_num.split('.')[0] if '.' in s_num else "2"
                     
-                    if item.visual_type == "TABLE":
-                        specs = await llm_service.generate_table_specs(
-                            topic=topic, work_type=work_type, outline=outline,
-                            sources_content=sources_content, count=1, 
-                            chapter_num=ch_num, full_bibliography=full_bib_str,
-                            specific_topic=item.topic
-                        )
-                        for s in specs:
-                            # [SELF-CORRECTION] Проверка на пустые данные
-                            if not s.rows or len(s.rows) == 0:
-                                s = await llm_service.fix_empty_table_spec(topic, s, outline, sources_content, full_bib_str)
-                                
-                            s.table_number = t_counter
-                            num = t_counter
-                            t_counter += 1
-                            all_table_specs.append(s)
-                            section_visuals[s_num].append(("TABLE", num))
-                            visuals_registry[("ТАБЛИЦУ", num)] = (s.dict() if hasattr(s, 'dict') else s, None)
-                    
-                    elif item.visual_type == "CHART":
-                        specs = await llm_service.generate_chart_specs(
-                            topic=topic, work_type=work_type, outline=outline,
-                            sources_content=sources_content, count=1, 
-                            chapter_num=ch_num, full_bibliography=full_bib_str,
-                            specific_topic=item.topic
-                        )
-                        for s in specs:
-                            # [SELF-CORRECTION] Проверка на пустые данные
-                            labels = s.data.get("labels", [])
-                            values = s.data.get("values", [])
-                            x_vals = s.data.get("x_values", [])
+                    current_tables_context = json_lib.dumps([s.dict() if hasattr(s, 'dict') else s for s in all_table_specs], ensure_ascii=False) if all_table_specs else ""
+                    specs = await llm_service.generate_table_specs(
+                        topic=topic, work_type=work_type, outline=outline,
+                        sources_content=sources_content, count=1, 
+                        chapter_num=ch_num, full_bibliography=full_bib_str,
+                        specific_topic=item.topic, previous_tables_data=current_tables_context
+                    )
+                    for s in specs:
+                        # [SELF-CORRECTION] Проверка на пустые данные
+                        if not s.rows or len(s.rows) == 0:
+                            s = await llm_service.fix_empty_table_spec(topic, s, outline, sources_content, full_bib_str)
                             
-                            if (not labels and not x_vals) or (not values and not x_vals):
-                                s = await llm_service.fix_empty_chart_spec(topic, s, outline, sources_content, full_bib_str)
-                                
-                            s.figure_number = f_counter
-                            num = f_counter
-                            f_counter += 1
-                            all_chart_specs.append(s)
-                            # В зависимости от движка вызываем async или sync метод
-                            if hasattr(chart_gen, 'generate_chart') and asyncio.iscoroutinefunction(chart_gen.generate_chart):
-                                path = await chart_gen.generate_chart(s)
-                            else:
-                                path = chart_gen.generate_chart(s)
-                                
-                            section_visuals[s_num].append(("CHART", num))
-                            visuals_registry[("ГРАФИК", num)] = (s.dict() if hasattr(s, 'dict') else s, str(path))
-                            visuals_registry[("РИСУНОК", num)] = (s.dict() if hasattr(s, 'dict') else s, str(path))
+                        s.table_number = t_counter
+                        num = t_counter
+                        t_counter += 1
+                        all_table_specs.append(s)
+                        section_visuals[s_num].append(("TABLE", num))
+                        visuals_registry[("ТАБЛИЦУ", num)] = (s.dict() if hasattr(s, 'dict') else s, None)
+
+                # Сериализуем ВСЕ сгенерированные таблицы для контекста графиков
+                # Это позволит графикам в любых главах видеть все таблицы
+                all_tables_context = json_lib.dumps([s.dict() if hasattr(s, 'dict') else s for s in all_table_specs], ensure_ascii=False) if all_table_specs else ""
+
+                # 5. Проход 2: Генерируем спецификации для всех ГРАФИКОВ (CHART)
+                for item in v_plan.items:
+                    if item.visual_type != "CHART":
+                        continue
+                        
+                    s_num = item.section_number
+                    if s_num not in section_visuals: section_visuals[s_num] = []
+                    
+                    ch_num = s_num.split('.')[0] if '.' in s_num else "2"
+                    
+                    # Передаем контекст всех таблиц и графиков работы для предотвращения дублирования
+                    all_charts_context = json_lib.dumps([s.dict() if hasattr(s, 'dict') else s for s in all_chart_specs], ensure_ascii=False) if all_chart_specs else ""
+                    specs = await llm_service.generate_chart_specs(
+                        topic=topic, work_type=work_type, outline=outline,
+                        sources_content=sources_content, count=1, 
+                        chapter_num=ch_num, full_bibliography=full_bib_str,
+                        specific_topic=item.topic, previous_tables_data=all_tables_context,
+                        previous_charts_data=all_charts_context
+                    )
+                    for s in specs:
+                        # [SELF-CORRECTION] Проверка на пустые данные
+                        labels = s.data.get("labels", [])
+                        values = s.data.get("values", [])
+                        x_vals = s.data.get("x_values", [])
+                        
+                        if (not labels and not x_vals) or (not values and not x_vals):
+                            s = await llm_service.fix_empty_chart_spec(topic, s, outline, sources_content, full_bib_str)
+                            
+                        s.figure_number = f_counter
+                        num = f_counter
+                        f_counter += 1
+                        all_chart_specs.append(s)
+                        # В зависимости от движка вызываем async или sync метод
+                        if hasattr(chart_gen, 'generate_chart') and asyncio.iscoroutinefunction(chart_gen.generate_chart):
+                            path = await chart_gen.generate_chart(s)
+                        else:
+                            path = chart_gen.generate_chart(s)
+                            
+                        section_visuals[s_num].append(("CHART", num))
+                        visuals_registry[("ГРАФИК", num)] = (s.dict() if hasattr(s, 'dict') else s, str(path))
+                        visuals_registry[("РИСУНОК", num)] = (s.dict() if hasattr(s, 'dict') else s, str(path))
                 
                 stored["section_visuals"] = section_visuals
                 _save_orders(orders_store)
+
+            # --- ШАГ 4.5: Паспорт объекта исследования ---
+            if not stored.get("research_passport"):
+                self._add_log(order_id, "Генерация паспорта объекта исследования...")
+                research_passport = await llm_service.generate_research_passport(topic, introduction)
+                stored["research_passport"] = research_passport
+                _save_orders(orders_store)
+            else:
+                research_passport = stored["research_passport"]
+
+            # --- ШАГ 4.6: Формирование единого реестра визуалов (источник цифровой истины) ---
+            all_visuals_data = llm_service._format_all_visuals_for_prompt(all_table_specs, all_chart_specs)
 
             # --- ШАГ 5: Генерация текста разделов ---
             for chapter in outline.chapters:
@@ -517,25 +633,27 @@ class PipelineOrchestrator:
                             if v_type == "TABLE":
                                 spec, _ = visuals_registry.get(("ТАБЛИЦУ", v_id), (None, None))
                                 if not spec: continue
-                                data_str = f"Заголовки: {_gs(spec, 'headers', [])} | Строки: {_gs(spec, 'rows', [])[:5]}"
+                                data_str = f"Заголовки: {_gs(spec, 'headers', [])} | Строки: {json_lib.dumps(_gs(spec, 'rows', []), ensure_ascii=False)}"
                                 t_num = _gs(spec, 'table_number', 0)
                                 t_title = _gs(spec, 'title', '')
                                 fig_instr += f"--- ТАБЛИЦА №{t_num} ---\n"
                                 fig_instr += f"ТЕМА: {t_title}\n"
                                 fig_instr += f"ШАГ 1 (ДАННЫЕ ДЛЯ АНАЛИЗА): {data_str}\n"
                                 fig_instr += f"ШАГ 2 (Маркер): Строго напиши [ВСТАВИТЬ_ТАБЛИЦУ_{t_num}] с новой строки.\n"
-                                fig_instr += f"ШАГ 3 (Анализ): Сразу после маркера напиши СТРОГО 180-230 слов (3-4 объемных абзаца) глубочайшего анализа данных из ШАГА 1. Описывай тенденции, сравнивай показатели. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать 'Таблица {t_num}' или самостоятельно нумеровать её в тексте анализа — это сделает система!\n\n"
+                                fig_instr += f"ШАГ 3 (Анализ): Сразу после маркера напиши СТРОГО 70-100 слов (1 компактный абзац) глубокого анализа данных из ШАГА 1. ОПИРАЙСЯ СТРОГО НА ИТОГОВЫЕ ЦИФРЫ В ТАБЛИЦЕ. ЗАПРЕЩЕНО ВЫДУМЫВАТЬ ИТОГИ ИЛИ ПЕРЕСЧИТЫВАТЬ ИХ. Описывай тенденции, сравнивай показатели. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать 'Таблица {t_num}' или самостоятельно нумеровать её в тексте анализа — это сделает система!\n\n"
                             elif v_type == "CHART":
                                 spec, _ = visuals_registry.get(("ГРАФИК", v_id), (None, None))
                                 if not spec: continue
                                 chart_data = _gs(spec, 'data', {})
+                                chart_type = _gs(spec, 'chart_type', 'график')
                                 f_num = _gs(spec, 'figure_number', 0)
                                 f_title = _gs(spec, 'title', '')
                                 fig_instr += f"--- РИСУНОК №{f_num} ---\n"
                                 fig_instr += f"ТЕМА: {f_title}\n"
-                                fig_instr += f"ШАГ 1 (ДАННЫЕ ДЛЯ АНАЛИЗА): {chart_data}\n"
+                                fig_instr += f"ТИП ГРАФИКА: {chart_type} (обязательно учти этот тип при описании)\n"
+                                fig_instr += f"ШАГ 1 (ДАННЫЕ ДЛЯ АНАЛИЗА): {json_lib.dumps(chart_data, ensure_ascii=False)}\n"
                                 fig_instr += f"ШАГ 2 (Маркер): Строго напиши [ВСТАВИТЬ_ГРАФИК_{f_num}] с новой строки.\n"
-                                fig_instr += f"ШАГ 3 (Анализ): Сразу после маркера напиши СТРОГО 180-230 слов (3-4 объемных абзаца) глубочайшего анализа данных из ШАГА 1. Описывай тренды, динамику, делай выводы. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать 'Рисунок {f_num}' или самостоятельно нумеровать его в тексте анализа — это сделает система!\n\n"
+                                fig_instr += f"ШАГ 3 (Анализ): Сразу после маркера напиши СТРОГО 70-100 слов (1 компактный абзац) глубокого анализа данных из ШАГА 1. Описывай тренды, динамику, делай выводы. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать 'Рисунок {f_num}' или самостоятельно нумеровать его в тексте анализа — это сделает система!\n\n"
                             elif v_type == "DIAGRAM":
                                 spec, _ = visuals_registry.get(("ГРАФИК", v_id), (None, None))
                                 if not spec: continue
@@ -559,6 +677,13 @@ class PipelineOrchestrator:
                         continue
 
                     await self._check_status(order_id)
+                    
+                    prev_context_list = []
+                    for k, v in sections.items():
+                        if k != sub.number and v:
+                            prev_context_list.append(f"--- Раздел {k} ---\n{v}")
+                    previous_sections_context = "\n\n".join(prev_context_list)
+                    
                     section_text = await llm_service.generate_section(
                         topic=topic,
                         work_type=work_type,
@@ -570,7 +695,10 @@ class PipelineOrchestrator:
                         target_words=words_per_section,
                         figures_instruction=fig_instr,
                         chapter_instruction=chapter_prompts.get(chapter.number, ""),
-                        citation_usage=citation_usage
+                        citation_usage=citation_usage,
+                        research_passport=research_passport,
+                        all_visuals_data="",  # Убираем глобальные визуалы, чтобы избежать утечек цифр!
+                        previous_sections_context=previous_sections_context
                     )
                     self._add_log(order_id, f"Раздел {sub.number} успешно написан ({len(section_text.split())} слов).")
                     sys.stdout.flush()
@@ -696,7 +824,7 @@ class PipelineOrchestrator:
                                     title=_gs(spec, 'title', ''),
                                     headers=_gs(spec, 'headers', []),
                                     rows=_gs(spec, 'rows', []),
-                                    source=_gs(spec, 'source_note', 'составлено автором'),
+                                    source=_gs(spec, 'source_note', 'подготовлено автором'),
                                     skip_header=False,
                                 )
                             else:
@@ -704,7 +832,7 @@ class PipelineOrchestrator:
                                     image_path=Path(path) if path else path,
                                     figure_number=spec.get("figure_number") if isinstance(spec, dict) else spec.figure_number,
                                     title=spec.get("title") if isinstance(spec, dict) else spec.title,
-                                    source=spec.get("source_note", "составлено автором") if isinstance(spec, dict) else spec.source_note,
+                                    source=spec.get("source_note", "подготовлено автором") if isinstance(spec, dict) else spec.source_note,
                                     skip_header=False,
                                 )
                             used_visuals.add((kind, num))
@@ -733,14 +861,14 @@ class PipelineOrchestrator:
                                         title=_gs(spec, 'title', ''),
                                         headers=_gs(spec, 'headers', []),
                                         rows=_gs(spec, 'rows', []),
-                                        source=_gs(spec, 'source_note', 'составлено автором'),
+                                        source=_gs(spec, 'source_note', 'подготовлено автором'),
                                     )
                                 else:
                                     builder.add_figure(
                                         image_path=Path(path) if path else path,
                                         figure_number=spec.get("figure_number") if isinstance(spec, dict) else spec.figure_number,
                                         title=spec.get("title") if isinstance(spec, dict) else spec.title,
-                                        source=spec.get("source_note", "составлено автором") if isinstance(spec, dict) else spec.source_note,
+                                        source=spec.get("source_note", "подготовлено автором") if isinstance(spec, dict) else spec.source_note,
                                     )
                                 used_visuals.add((kind_key, v_id))
                                 if kind_key == "ГРАФИК": used_visuals.add(("РИСУНОК", v_id))
@@ -770,7 +898,8 @@ class PipelineOrchestrator:
 
             self._update_status(order_id, OrderStatus.COMPLETED, 100,
                                 "Работа готова!")
-            orders_store[order_id]["download_url"] = f"/output/{order_id}/{filename}"
+            import time
+            orders_store[order_id]["download_url"] = f"/output/{order_id}/{filename}?v={int(time.time())}"
             self._add_completed_step(order_id, "Документ собран и готов к скачиванию")
 
             return docx_path
@@ -830,15 +959,70 @@ class PipelineOrchestrator:
             steps_completed=order["steps_completed"],
         )
 
-    def list_user_orders(self, user_id: int) -> list[dict]:
+    def list_user_orders(self, user_id: int, user_email: Optional[str] = None) -> list[dict]:
         """Получить все заказы пользователя."""
         refresh_orders_store()
+        
+        # Если это пользователь pobedonosec756@gmail.com, привяжем mock-заказы к его user_id
+        if user_email == "pobedonosec756@gmail.com":
+            updated = False
+            for mock_id in ["5634fhwj", "f0984s7g"]:
+                if mock_id in orders_store and orders_store[mock_id].get("user_id") != user_id:
+                    orders_store[mock_id]["user_id"] = user_id
+                    updated = True
+            if updated:
+                _save_orders(orders_store)
+                
         user_orders = []
         for order_id, order in orders_store.items():
             if order.get("user_id") == user_id:
                 user_orders.append(order)
         # Сортировка по дате (свежие сверху)
         return sorted(user_orders, key=lambda x: x.get("created_at", ""), reverse=True)
+
+
+    async def check_and_claim_guest_order(self, order_id: str, user: Optional[Any] = None) -> dict:
+        """Проверить владельца заказа и, если он гость, а пользователь залогинен, заявить на него права и перезапустить генерацию черновика."""
+        refresh_orders_store()
+        stored = orders_store.get(order_id)
+        if not stored:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Заказ не найден")
+            
+        order_user_id = stored.get("user_id")
+        
+        if order_user_id is None:
+            # Это заказ гостя!
+            if user is not None:
+                logger.info(f"Claiming guest order {order_id} for user {user.id} ({user.email})")
+                stored["user_id"] = user.id
+                
+                # Если черновик уже был готов в демо-режиме, перезапускаем полную генерацию черновика
+                if stored.get("status") == OrderStatus.DRAFT_READY:
+                    stored["draft_outline"] = None
+                    stored["draft_sources"] = None
+                    stored["status"] = OrderStatus.PENDING
+                    stored["progress"] = 0
+                    stored["current_step"] = "Перегенерация для зарегистрированного пользователя"
+                    
+                    if "logs" not in stored:
+                        stored["logs"] = []
+                    stored["logs"].append(f"[{datetime.now().strftime('%H:%M:%S')}] Пользователь вошел в систему. Запущена перегенерация плана и источников.")
+                    _save_orders(orders_store)
+                    
+                    # Запускаем фоновую задачу через ARQ
+                    from app.arq_pool import get_redis_pool
+                    redis = await get_redis_pool()
+                    await redis.enqueue_job('run_draft_generation', order_id)
+                else:
+                    _save_orders(orders_store)
+        else:
+            # Заказ принадлежит конкретному пользователю
+            if user is None or (order_user_id != user.id and not user.is_admin):
+                from fastapi import HTTPException
+                raise HTTPException(status_code=403, detail="Доступ запрещен: это не ваш заказ")
+                
+        return stored
 
 
 # Синглтон

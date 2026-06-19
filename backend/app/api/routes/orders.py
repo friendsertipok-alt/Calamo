@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.order import OrderCreate, OrderResponse
 from app.pipeline.generator import pipeline, orders_store, refresh_orders_store
-from app.auth import get_current_user, oauth2_scheme
+from app.auth import get_current_user, get_current_user_optional, oauth2_scheme
 from app.models import User
 from app.database import get_db
 from app.services.telegram_service import notify_new_order
@@ -16,11 +16,11 @@ router = APIRouter()
 async def create_order(
     order: OrderCreate, 
     background_tasks: BackgroundTasks,
-    user: User = Depends(get_current_user),
+    user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
 ):
     """Создать новый заказ на генерацию."""
-    user_id = user.id
+    user_id = user.id if user else None
     
     from app.utils.security import sanitize_html
     order.topic = sanitize_html(order.topic)
@@ -44,7 +44,7 @@ async def create_order(
         background_tasks.add_task(
             notify_new_order,
             order_id,
-            user.email,
+            user.email if user else "guest@calamo.lol",
             str(work_type),
             str(topic)
         )
@@ -65,15 +65,9 @@ async def create_order(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{order_id}", response_model=OrderResponse)
-async def get_order(order_id: str, user: User = Depends(get_current_user)):
+async def get_order(order_id: str, user: Optional[User] = Depends(get_current_user_optional)):
     """Получить информацию о заказе."""
-    refresh_orders_store()
-    stored = orders_store.get(order_id)
-    if not stored:
-        raise HTTPException(status_code=404, detail="Заказ не найден")
-    
-    if stored.get("user_id") != user.id and not user.is_admin:
-        raise HTTPException(status_code=403, detail="Доступ запрещен: это не ваш заказ")
+    stored = await pipeline.check_and_claim_guest_order(order_id, user)
     
     data = stored["data"]
     # Handle both dict and Pydantic object
@@ -104,7 +98,7 @@ async def get_order(order_id: str, user: User = Depends(get_current_user)):
 @router.get("/user/me", response_model=list[OrderResponse])
 async def get_my_orders(user: User = Depends(get_current_user)):
     """Получить список всех заказов текущего пользователя."""
-    user_orders = pipeline.list_user_orders(user.id)
+    user_orders = pipeline.list_user_orders(user.id, user_email=user.email)
     
     responses = []
     for stored in user_orders:

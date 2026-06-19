@@ -20,8 +20,8 @@ Calamo is an automated platform for generating academic papers (courseworks, ess
 7. **No Consecutive Visuals**: Never place two tables/charts back-to-back without intervening text.
 
 ## Technical Commands
-- **Run Backend**: `cd backend && source venv/bin/activate && uvicorn app.main:app --reload`
-- **Deploy to Prod**: `./deploy.sh` (requires SSH config — see deploy.sh)
+- **Run Backend**: `cd backend && venv\Scripts\activate && uvicorn app.main:app --reload`
+- **Deploy to Prod**: `ssh -i ~/.ssh/antigravity_new_key root@185.5.75.211 "cd /opt/calamo && git pull origin main && docker-compose build && docker-compose up -d"` (или запуск `./deploy.sh`)
 - **Venv Path**: `backend/venv`
 
 ## Final Report Requirements

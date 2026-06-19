@@ -1,0 +1,8 @@
+{
+  "admin_emails": [
+    "pobedonosec756@gmail.com",
+    "abricaca228@gmail.com",
+    "dt8745@gmail.com"
+  ],
+  "_comment": "Добавьте сюда email-адреса администраторов. Пользователи с этими адресами автоматически получат доступ к /admin."
+}
